@@ -12,11 +12,11 @@ if __name__ == "__main__" and __package__ is None:
 
 import urllib.request # for downloading files
 from os import path, makedirs, listdir
-import zipfile
 from shutil import copyfile, rmtree
 from numpy import invert
 from scipy import misc
-import re
+from util.files_processing import natural_key, unzip_file
+
 
 
 
@@ -52,9 +52,7 @@ TEST_GT_DATA_PATH = 'data/HRF/test/labels/'
 def unzip_files(root_path, zip_filenames, data_path):
     # Unzip files    
     for i in range(0, len(zip_filenames)):
-        zip_ref = zipfile.ZipFile(path.join(root_path, zip_filenames[i]), 'r')
-        zip_ref.extractall(data_path)
-        zip_ref.close()
+        unzip_file(root_path, zip_filenames[i], data_path)
 
 
 
@@ -86,10 +84,6 @@ def copy_labels(root_folder, filenames, data_path):
         misc.imsave(path.join(data_path, current_filename[:-3] + 'png'), labels)
 
 
-
-def natural_key(string_):
-    """See http://www.codinghorror.com/blog/archives/001018.html"""
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
 def organize_hrf():
@@ -144,8 +138,6 @@ def organize_hrf():
 
     # Remove useless folders
     rmtree('tmp/HRF/')
-
-
 
 
 

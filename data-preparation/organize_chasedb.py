@@ -17,7 +17,7 @@ import zipfile
 from shutil import copyfile, rmtree
 from numpy import invert
 from scipy import misc
-import re
+from util.files_processing import natural_key
 
 
 
@@ -79,9 +79,6 @@ def copy_labels(root_folder, filenames, data_path):
 
 
 
-def natural_key(string_):
-    """See http://www.codinghorror.com/blog/archives/001018.html"""
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
 def organize_chasedb():
