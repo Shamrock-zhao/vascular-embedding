@@ -17,7 +17,7 @@ import zipfile
 from shutil import copyfile, rmtree
 from numpy import invert
 from scipy import misc
-from util.files_processing import natural_key
+from util.files_processing import natural_key, unzip_file
 
 
 
@@ -37,16 +37,6 @@ VALIDATION_GT2_DATA_PATH = 'data/CHASEDB1/validation/labels2'
 TEST_IMAGES_DATA_PATH = 'data/CHASEDB1/test/images/'
 TEST_GT_DATA_PATH = 'data/CHASEDB1/test/labels/'
 TEST_GT2_DATA_PATH = 'data/CHASEDB1/test/labels2/'
-
-
-
-
-
-
-def unzip_file(root_path, zip_filename, data_path):
-    zip_ref = zipfile.ZipFile(path.join(root_path, zip_filename), 'r')
-    zip_ref.extractall(data_path)
-    zip_ref.close()
 
 
 
