@@ -6,7 +6,7 @@ import zipfile
 from shutil import copyfile, rmtree, move
 from numpy import invert
 from scipy import misc
-from util.files_processing import natural_key, unzip_file
+from data_preparation.util.files_processing import natural_key, unzip_file
 
 
 

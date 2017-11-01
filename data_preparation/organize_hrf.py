@@ -15,7 +15,7 @@ from os import path, makedirs, listdir
 from shutil import copyfile, rmtree
 from numpy import invert
 from scipy import misc
-from util.files_processing import natural_key, unzip_file
+from data_preparation.util.files_processing import natural_key, unzip_file
 
 
 

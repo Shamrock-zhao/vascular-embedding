@@ -16,10 +16,7 @@ import zipfile
 from shutil import copyfile, rmtree
 from numpy import invert
 from scipy import misc
-
-import tarfile, sys
-
-from util.files_processing import natural_key, untar_file, ungz_file
+from data_preparation.util.files_processing import natural_key, untar_file, ungz_file
 
 
 
