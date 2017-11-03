@@ -242,6 +242,36 @@ def organize_iostar():
 
 
 
+def organize_drhagis():
+    
+    URL = 'http://personalpages.manchester.ac.uk/staff/niall.p.mcloughlin/DRHAGIS.zip'
+
+    # Check if tmp exists
+    if not path.exists('tmp'):
+        makedirs('tmp')
+
+    # Download images from the known link to tmp
+    data_path = path.join('tmp', 'DRHAGIS.zip')
+    if not path.exists(data_path):
+        print('Downloading data from ' + URL)
+        urllib.request.urlretrieve(URL, data_path)
+    else:
+        print('DRHAGIS.zip file exists. Continuing processing...')
+
+    # Unzip files
+    unzip_file('tmp', 'DRHAGIS.zip', 'tmp')
+
+    # We will only have a single folder, as now proposals for training/test are provided in this data set
+    rename('tmp/DRHAGIS/Fundus_Images', 'tmp/DRHAGIS/images')
+    rename('tmp/DRHAGIS/Mask_images', 'tmp/DRHAGIS/masks')
+    rename('tmp/DRHAGIS/Manual_Segmentations', 'tmp/DRHAGIS/labels')
+
+    # Done! Now move the folder
+    move('tmp/DRHAGIS', 'data/DRHAGIS')    
+    print('DRHAGIS data set ready!') 
+
+
+
 def organize_stare():
     
     # URLs to download images
