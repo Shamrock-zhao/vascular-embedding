@@ -1,6 +1,8 @@
 
-from data_preparation import organize_drive, organize_stare, organize_hrf, organize_chasedb
+
 from os import makedirs, path
+from util.organize_data import organize_drive, organize_stare, organize_chasedb, organize_hrf, organize_iostar
+
 
 
 def setup_data():
@@ -10,13 +12,15 @@ def setup_data():
         makedirs('tmp')
 
     print('Preparing DRIVE...')
-    organize_drive.organize_drive()
+    organize_drive()
     print('Preparing STARE...')
-    organize_stare.organize_stare()
+    organize_stare()
     print('Preparing CHASEDB...')
-    organize_chasedb.organize_chasedb()
+    organize_chasedb()
     print('Preparing HRF...')
-    organize_hrf.organize_hrf()
+    organize_hrf()
+    print('Preparing IOSTAR...')
+    organize_iostar()
     
 
 
