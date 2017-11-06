@@ -10,7 +10,7 @@ def print_dataset_was_ready(dataset_name):
 
 
 
-def setup_data():
+def setup_data(patch_size=64):
 
     # Check if tmp exists
     if not path.exists('tmp'):
@@ -57,6 +57,10 @@ def setup_data():
         organize_drhagis()
     else:
         print_dataset_was_ready('DRHAGIS') 
+
+    
+    # Extract random patches from each training set
+    #extract_random_patches()
     
 
 

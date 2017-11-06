@@ -5,7 +5,7 @@ from os import path, makedirs, listdir, rename
 from shutil import rmtree, move
 from glob import glob
 from .files_processing import natural_key, unzip_file, copy_images, copy_labels, move_files, unzip_files, untar_file, ungz_files
-
+from .image_processing import generate_fov_masks
 
 
 def organize_chasedb():
@@ -14,17 +14,20 @@ def organize_chasedb():
     URL = 'https://staffnet.kingston.ac.uk/~ku15565/CHASE_DB1/assets/CHASEDB1.zip'
 
     # Training data paths
-    TRAINING_IMAGES_DATA_PATH = 'data/CHASEDB1/train/images'
-    TRAINING_GT_DATA_PATH = 'data/CHASEDB1/train/labels'
-    TRAINING_GT2_DATA_PATH = 'data/CHASEDB1/train/labels2'
+    TRAINING_IMAGES_DATA_PATH = 'data/CHASEDB1/training/images'
+    TRAINING_GT_DATA_PATH = 'data/CHASEDB1/training/labels'
+    TRAINING_GT2_DATA_PATH = 'data/CHASEDB1/training/labels2'
+    TRAINING_FOV_MASKS_DATA_PATH = 'data/CHASEDB1/training/masks'
     # Validation data paths
     VALIDATION_IMAGES_DATA_PATH = 'data/CHASEDB1/validation/images'
     VALIDATION_GT_DATA_PATH = 'data/CHASEDB1/validation/labels'
     VALIDATION_GT2_DATA_PATH = 'data/CHASEDB1/validation/labels2'
+    VALIDATION_FOV_MASKS_DATA_PATH = 'data/CHASEDB1/validation/masks'
     # Test data paths
     TEST_IMAGES_DATA_PATH = 'data/CHASEDB1/test/images/'
     TEST_GT_DATA_PATH = 'data/CHASEDB1/test/labels/'
     TEST_GT2_DATA_PATH = 'data/CHASEDB1/test/labels2/'
+    TEST_FOV_MASKS_DATA_PATH = 'data/CHASEDB1/test/masks'
 
     # Check if tmp exists
     if not path.exists('tmp'):
@@ -44,11 +47,19 @@ def organize_chasedb():
     if not path.exists('tmp/CHASEDB1/labels'):
         makedirs('tmp/CHASEDB1/labels')
     if not path.exists('tmp/CHASEDB1/labels2'):
-        makedirs('tmp/CHASEDB1/labels2')        
+        makedirs('tmp/CHASEDB1/labels2') 
+    if not path.exists('tmp/CHASEDB1/masks'):
+        makedirs('tmp/CHASEDB1/masks')                
 
     # Unzip files in tmp/CHASEDB1
     print('Unzipping images...')
     unzip_file('tmp', 'CHASEDB1.zip', 'tmp/CHASEDB1')
+
+    # Generate FOV masks
+    print('Generating FOV masks...')
+    # Get image filenames
+    image_filenames = sorted(glob('tmp/CHASEDB1/*.jpg'), key=natural_key)
+    generate_fov_masks('tmp/CHASEDB1', image_filenames)
 
     # Move images
     # 1. Get image filenames
@@ -79,6 +90,16 @@ def organize_chasedb():
     copy_labels('tmp/CHASEDB1', labels2_filenames[-2:], VALIDATION_GT2_DATA_PATH)
     # 4. Copy the images from 20 to 26 as training set
     copy_labels('tmp/CHASEDB1', labels2_filenames[20:26], TRAINING_GT2_DATA_PATH)
+
+    # Move FOV masks
+    # 1. Get labels filenames (first observer)
+    fov_filenames = sorted(glob('tmp/CHASEDB1/*_fov_mask.png'), key=natural_key)
+    # 2. Copy the first 20 images as test set
+    copy_labels('tmp/CHASEDB1', fov_filenames[:20], TEST_FOV_MASKS_DATA_PATH)
+    # 3. Copy the last 2 images as validation set
+    copy_labels('tmp/CHASEDB1', fov_filenames[-2:], VALIDATION_FOV_MASKS_DATA_PATH)
+    # 4. Copy the images from 20 to 26 as training set
+    copy_labels('tmp/CHASEDB1', fov_filenames[20:26], TRAINING_FOV_MASKS_DATA_PATH)
 
     # Remove useless folders
     rmtree('tmp/CHASEDB1/')
@@ -148,14 +169,17 @@ def organize_hrf():
     ALL_URL_FILENAMES = URL_FILENAMES_IMAGES + URL_FILENAMES_LABELS
 
     # Training data paths
-    TRAINING_IMAGES_DATA_PATH = 'data/HRF/train/images'
-    TRAINING_GT_DATA_PATH = 'data/HRF/train/labels'
+    TRAINING_IMAGES_DATA_PATH = 'data/HRF/training/images'
+    TRAINING_GT_DATA_PATH = 'data/HRF/training/labels'
+    TRAINING_FOV_MASKS_DATA_PATH = 'data/HRF/training/masks'
     # Validation data paths
     VALIDATION_IMAGES_DATA_PATH = 'data/HRF/validation/images'
     VALIDATION_GT_DATA_PATH = 'data/HRF/validation/labels'
+    VALIDATION_FOV_MASKS_DATA_PATH = 'data/HRF/validation/masks'
     # Test data paths
     TEST_IMAGES_DATA_PATH = 'data/HRF/test/images/'
     TEST_GT_DATA_PATH = 'data/HRF/test/labels/'
+    TEST_FOV_MASKS_DATA_PATH = 'data/HRF/test/masks'
 
     # Check if tmp exists
     if not path.exists('tmp'):
@@ -175,6 +199,8 @@ def organize_hrf():
         makedirs('tmp/HRF/images')
     if not path.exists('tmp/HRF/labels'):
         makedirs('tmp/HRF/labels')
+    if not path.exists('tmp/HRF/masks'):
+        makedirs('tmp/HRF/masks')        
 
     # Unzip images in tmp/images
     print('Unzipping images...')
@@ -183,18 +209,27 @@ def organize_hrf():
     print('Unzipping labels...')
     unzip_files('tmp', URL_FILENAMES_LABELS, 'tmp/HRF/labels')
 
-    # Generate training/test images
+    # Get image names
+    print('Generating FOV masks...')
+    image_filenames = sorted(listdir('tmp/HRF/images'), key=natural_key)
+    # Copy them to the masks folder
+    copy_images('tmp/HRF/images', image_filenames, 'tmp/HRF/masks')
+    image_filenames = sorted(listdir('tmp/HRF/masks'), key=natural_key)
+    # Generate FOV masks
+    generate_fov_masks('tmp/HRF/masks', image_filenames)
+
+    # Copy training/validation/test images
     print('Copying images...')
     # 1. Get image names
     image_filenames = sorted(listdir('tmp/HRF/images'), key=natural_key)
     # 2. Copy training images
     copy_images('tmp/HRF/images', image_filenames[:12], TRAINING_IMAGES_DATA_PATH)
-    # 3. Copy validation
+    # 3. Copy validation images
     copy_images('tmp/HRF/images', image_filenames[12:15], VALIDATION_IMAGES_DATA_PATH)
     # 4. Copy test images
     copy_images('tmp/HRF/images', image_filenames[-30:], TEST_IMAGES_DATA_PATH)
 
-    # Generate training/test labels 
+    # Copy training/validation/test labels 
     print('Copying labels...')
     # 1. Get labels names
     gt_filenames = sorted(listdir('tmp/HRF/labels'), key=natural_key)
@@ -204,6 +239,18 @@ def organize_hrf():
     copy_labels('tmp/HRF/labels', gt_filenames[12:15], VALIDATION_GT_DATA_PATH)
     # 4. Copy test labels
     copy_labels('tmp/HRF/labels', gt_filenames[-30:], TEST_GT_DATA_PATH)
+
+    # Copy training/validation/test FOV masks 
+    print('Copying FOV masks...')
+    # 1. Get labels names
+    fov_filenames = sorted(glob('tmp/HRF/masks/*_fov_mask.png'), key=natural_key)
+    # 2. Copy training labels
+    copy_labels('tmp/HRF/masks', fov_filenames[:12], TRAINING_FOV_MASKS_DATA_PATH)
+    # 3. Copy validation labels
+    copy_labels('tmp/HRF/masks', fov_filenames[12:15], VALIDATION_FOV_MASKS_DATA_PATH)
+    # 4. Copy test labels
+    copy_labels('tmp/HRF/masks', fov_filenames[-30:], TEST_FOV_MASKS_DATA_PATH)
+
 
     # Remove useless folders
     rmtree('tmp/HRF/')
@@ -281,17 +328,20 @@ def organize_stare():
     URLS_FILENAMES = ['stare-images.tar', 'labels-ah.tar', 'labels-vk.tar']
 
     # Training data paths
-    TRAINING_IMAGES_DATA_PATH = 'data/STARE/train/images'
-    TRAINING_GT_DATA_PATH = 'data/STARE/train/labels'
-    TRAINING_GT2_DATA_PATH = 'data/STARE/train/labels2'
+    TRAINING_IMAGES_DATA_PATH = 'data/STARE/training/images'
+    TRAINING_GT_DATA_PATH = 'data/STARE/training/labels'
+    TRAINING_GT2_DATA_PATH = 'data/STARE/training/labels2'
+    TRAINING_FOV_MASKS_DATA_PATH = 'data/STARE/training/masks'
     # Validation data paths
     VALIDATION_IMAGES_DATA_PATH = 'data/STARE/validation/images'
     VALIDATION_GT_DATA_PATH = 'data/STARE/validation/labels'
     VALIDATION_GT2_DATA_PATH = 'data/STARE/validation/labels2'
+    VALIDATION_FOV_MASKS_DATA_PATH = 'data/STARE/validation/masks'
     # Test data paths
     TEST_IMAGES_DATA_PATH = 'data/STARE/test/images/'
     TEST_GT_DATA_PATH = 'data/STARE/test/labels/'
     TEST_GT2_DATA_PATH = 'data/STARE/test/labels2/'
+    TEST_FOV_MASKS_DATA_PATH = 'data/STARE/test/masks'
 
     # Check if tmp exists
     if not path.exists('tmp'):
@@ -312,7 +362,7 @@ def organize_stare():
     if not path.exists('tmp/STARE/labels'):
         makedirs('tmp/STARE/labels')
     if not path.exists('tmp/STARE/labels2'):
-        makedirs('tmp/STARE/labels2')        
+        makedirs('tmp/STARE/labels2')           
 
     # Untar images in tmp/images
     print('Extracting images...')
@@ -324,7 +374,7 @@ def organize_stare():
     print('Extracting the other labels...')
     untar_file('tmp', URLS_FILENAMES[2], 'tmp/STARE/labels2')    
 
-    # Generate training/test images
+    # Copy training/validation/test images
     print('Copying images...')
     # 1. Get image names
     image_filenames = sorted(listdir('tmp/STARE/images'), key=natural_key)
@@ -335,7 +385,7 @@ def organize_stare():
     # 4. Copy test images
     ungz_files('tmp/STARE/images', image_filenames[-10:], TEST_IMAGES_DATA_PATH)
 
-    # Generate training/test labels
+    # Copy training/validation/test labels
     print('Copying labels...')
     # 1. Get image names
     gt_filenames = sorted(listdir('tmp/STARE/labels'), key=natural_key)
@@ -346,7 +396,7 @@ def organize_stare():
     # 4. Copy test labels
     ungz_files('tmp/STARE/labels', gt_filenames[-10:], TEST_GT_DATA_PATH)
 
-    # Generate training/test labels2
+    # Copy training/validation/test labels2
     print('Copying the other labels...')
     # 1. Get image names
     gt_filenames = sorted(listdir('tmp/STARE/labels2'), key=natural_key)
@@ -357,6 +407,13 @@ def organize_stare():
     # 4. Copy test labels2
     ungz_files('tmp/STARE/labels2', gt_filenames[-10:], TEST_GT2_DATA_PATH)
     
+    # Copy the precomputed masks
+    print('Moving precomputed masks...')
+    fov_filenames = sorted(listdir('precomputed_data/STARE/masks'), key=natural_key)
+    copy_images('precomputed_data/STARE/masks', fov_filenames[:7], TRAINING_FOV_MASKS_DATA_PATH)
+    copy_images('precomputed_data/STARE/masks', fov_filenames[7:10], VALIDATION_FOV_MASKS_DATA_PATH)
+    copy_images('precomputed_data/STARE/masks', fov_filenames[-10:], TEST_FOV_MASKS_DATA_PATH)
+
     # Remove useless folders
     rmtree('tmp/STARE/')
     print('STARE data set ready!')    
