@@ -16,25 +16,21 @@ def prepare_data_for_experiments(patch_size=64, num_patches=1000, color=True, ov
     extract_patches_from_training_datasets('DRIVE', 
                                            patch_size=patch_size, 
                                            num_patches=num_patches, 
-                                           is_training=True, 
                                            color=color,
                                            overwrite=overwrite)   
     extract_patches_from_training_datasets('STARE', 
                                            patch_size=patch_size, 
                                            num_patches=num_patches, 
-                                           is_training=True, 
                                            color=color,
                                            overwrite=overwrite)   
     extract_patches_from_training_datasets('CHASEDB1', 
                                            patch_size=patch_size, 
                                            num_patches=num_patches, 
-                                           is_training=True, 
                                            color=color,
                                            overwrite=overwrite)   
     extract_patches_from_training_datasets('HRF', 
                                            patch_size=patch_size, 
                                            num_patches=num_patches, 
-                                           is_training=True, 
                                            color=color,
                                            overwrite=overwrite)   
 
