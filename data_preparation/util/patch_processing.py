@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from skimage import io
 from os import path, makedirs, listdir, rename
 from scipy import misc
+from shutil import rmtree
 from .files_processing import natural_key
 from skimage import measure
 
@@ -31,7 +32,7 @@ def pick_random_coordinate(coordinates):
 
 
 
-def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_training=True, color=True):
+def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_training=True, color=True, overwrite=True):
     
     # prepare input folders
     img_folder = path.join(dataset_folder, 'images')
@@ -43,6 +44,8 @@ def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_t
     
     # initialize output folder
     output_image_folder = path.join(dataset_folder, 'patches')
+    if overwrite:
+        rmtree(output_image_folder)
     if not path.exists(output_image_folder):
         makedirs(output_image_folder)
 
@@ -51,6 +54,8 @@ def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_t
         gt_folder = path.join(dataset_folder, 'labels')
         gt_filenames = sorted(listdir(gt_folder), key=natural_key)
         output_labels_folder = path.join(dataset_folder, 'labels_patches')
+        if overwrite:
+            rmtree(output_labels_folder)
         if not path.exists(output_labels_folder):
             makedirs(output_labels_folder)
 
@@ -121,30 +126,32 @@ def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_t
 
 
 
-def extract_patches_from_training_datasets(dataset_name, patch_size=64, num_patches=1000, is_training=True, color=True):
+def extract_patches_from_training_datasets(dataset_name, patch_size=64, num_patches=1000, is_training=True, color=True, overwrite=True):
     
     # Extract random patches from training/validation data sets
     training_dataset_path = path.join('data', dataset_name, 'training')
 
-    if not path.exists(path.join(training_dataset_path, 'patches')):
+    if not path.exists(path.join(training_dataset_path, 'patches')) or overwrite:
         print('Extracting patches from {0} training set...'.format(dataset_name))
         extract_random_patches(training_dataset_path, 
                                patch_size=patch_size, 
                                num_patches=num_patches, 
                                is_training=is_training, 
-                               color=color)
+                               color=color,
+                               overwrite=overwrite)
     else:
         print('{0} training set has precomputed patches.'.format(dataset_name))
 
     # Extract random patches from the validation set    
     validation_dataset_path = path.join('data', dataset_name, 'validation');
 
-    if not path.exists(path.join(validation_dataset_path, 'patches')):
+    if not path.exists(path.join(validation_dataset_path, 'patches')) or overwrite:
         print('Extracting patches from {0} validation set...'.format(dataset_name))
         extract_random_patches(validation_dataset_path, 
                                patch_size=patch_size, 
                                num_patches=num_patches, 
                                is_training=is_training, 
-                               color=color)
+                               color=color,
+                               overwrite=overwrite)
     else:
         print('{0} validation set has precomputed patches.'.format(dataset_name))
