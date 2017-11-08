@@ -1,7 +1,9 @@
-from skimage import io, color, measure
+
+from skimage import io, color, measure, filters
 from scipy import ndimage, stats
 import numpy as np
 from os import path
+
 
 
 def get_fov_mask(image_rgb, threshold=0.01):
@@ -69,3 +71,62 @@ def generate_fov_masks(image_path, image_filenames, threshold=0.01):
         fov_mask = get_fov_mask(img, threshold)
         # save the fov mask
         io.imsave(path.join(image_path, current_filename[:-4] + '_fov_mask.png'), fov_mask)
+
+
+
+def replace_out_of_fov_pixels(image_rgb, fov_mask):
+    
+    # get image size
+    image_size = image_rgb.shape
+
+    # for each color band, apply:
+    for color_band in range(0, image_size[2]):
+
+        # get current color band
+        current_color_band = image_rgb[:, :, color_band]
+        # compute the mean value inside the fov mask
+        mean_value = (current_color_band[fov_mask>0]).mean()
+        # assign this value to all pixels outside the fov
+        current_color_band[fov_mask == 0] = mean_value
+        # and copy back the color band
+        image_rgb[:, :, color_band] = current_color_band
+
+    return image_rgb
+
+
+def equalize_fundus_image_intensities(image_rgb, fov_mask):
+
+    # replace out of fov pixels with the average intensity
+    image_rgb = replace_out_of_fov_pixels(image_rgb, fov_mask).astype(float)
+
+    # these constants were assigned according to van Grinsven et al. 2016, TMI
+    alpha = 4.0
+    beta = -4.0
+    gamma = 128.0
+
+    # get image size
+    image_size = image_rgb.shape
+
+    # initialize the output image with the same size that the input image
+    equalized_image = np.zeros(image_size).astype(float)
+
+    # estimate the sigma parameter using the scaling approach by
+    # Orlando et al. 2017, arXiv
+    sigma = image_size[1] / 30.0
+
+    # for each color band, apply:
+    for color_band in range(0, image_size[2]):
+
+        # apply a gaussian filter on the current band to estimate the background
+        smoothed_band = ndimage.filters.gaussian_filter(image_rgb[:, :, color_band], sigma, truncate=3)
+        # apply the equalization procedure on the current band
+        equalized_image[:, :, color_band] = alpha * image_rgb[:, :, color_band] + beta * smoothed_band + gamma
+        # remove elements outside the fov
+        intermediate = np.multiply(equalized_image[:, :, color_band], fov_mask > 0)
+
+        intermediate[intermediate>255] = 255
+        intermediate[intermediate<0] = 0
+
+        equalized_image[:, :, color_band] = intermediate
+
+    return equalized_image.astype(np.uint8)

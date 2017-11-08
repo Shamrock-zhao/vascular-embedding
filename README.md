@@ -14,7 +14,7 @@ scikit-image 0.13.0
 
 ## Data preparation
 
-```setup_data.py``` 
+```organize_datasets``` 
 
 Run this script to prepare all the data sets (DRIVE, STARE, CHASEDB1 and HRF) in their traditional splits into training, validation and test, and to generate FOV masks for CHASEDB1 and HRF data sets. STARE FOV masks were downloaded [from this website](http://www.uhu.es/retinopathy/muestras2.php).
 
@@ -24,3 +24,5 @@ If you want to prepare a single database, you can use the functions in ```data_p
 
 > **Note** You need to download the ```DRIVE.zip``` file manually and paste it in ```./tmp```, as it requires to register [in this webpage](https://www.isi.uu.nl/Research/Databases/DRIVE/download.php). All the other databases will be downloaded automatically from their original sources.
 
+
+```prepare_data_for_experiments```

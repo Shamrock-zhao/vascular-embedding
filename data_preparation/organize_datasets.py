@@ -10,7 +10,7 @@ def print_dataset_was_ready(dataset_name):
 
 
 
-def setup_data(patch_size=64):
+def organize_datasets():
 
     # Check if tmp exists
     if not path.exists('tmp'):
@@ -21,7 +21,7 @@ def setup_data(patch_size=64):
         print('Preparing DRIVE...')
         organize_drive()
     else:
-        print_dataset_was_ready('DRIVE')
+        print_dataset_was_ready('DRIVE')   
 
     # Prepare STARE if the folder does not exist
     if not path.exists('data/STARE'):
@@ -35,7 +35,7 @@ def setup_data(patch_size=64):
         print('Preparing CHASEDB1...')
         organize_chasedb()
     else:
-        print_dataset_was_ready('CHASEDB1')        
+        print_dataset_was_ready('CHASEDB1')      
 
     # Prepare HRF if the folder does not exist
     if not path.exists('data/HRF'):
@@ -43,7 +43,7 @@ def setup_data(patch_size=64):
         organize_hrf()
     else:
         print_dataset_was_ready('HRF') 
-    
+
     # Prepare IOSTAR if the folder does not exist
     if not path.exists('data/IOSTAR'):
         print('Preparing IOSTAR...')
@@ -56,12 +56,7 @@ def setup_data(patch_size=64):
         print('Preparing DRHAGIS...')
         organize_drhagis()
     else:
-        print_dataset_was_ready('DRHAGIS') 
-
-    
-    # Extract random patches from each training set
-    #extract_random_patches()
-    
+        print_dataset_was_ready('DRHAGIS')     
 
 
 import sys
@@ -69,4 +64,4 @@ import sys
 if __name__ == '__main__':
 
     # call the main function
-    setup_data()
+    organize_datasets()
