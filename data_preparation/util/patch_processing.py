@@ -1,10 +1,12 @@
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 from skimage import io
 from os import path, makedirs, listdir, rename
-import numpy as np
 from scipy import misc
 from .files_processing import natural_key
-import matplotlib.pyplot as plt
+from skimage import measure
 
 
 
@@ -14,17 +16,18 @@ def preprocess(image, fov_mask):
 
 
 
-def pick_random_coordinate_inside_fov(fov_mask):
+def pick_random_coordinate(coordinates):
     
-    # identify coordinates inside the FOV mask
-    x, y = np.where(fov_mask)
-    # pick up x,y index randomly
-    i = np.random.randint(len(x))
-    j = np.random.randint(len(y))
-    # set FOV mask position in zero to avoid repetitions
-    fov_mask[x[i], y[j]] = False
-
-    return x[i], y[j], fov_mask
+    # get number of coordinates
+    coordinates_shape = coordinates.shape
+    n_row = coordinates_shape[0]
+    # pick random element from the coordinates array
+    idx = np.random.randint(n_row)
+    random_coordinate = coordinates[idx, :]
+    # remove it to avoid repetitions
+    coordinates = np.delete(coordinates, idx, 0)
+    # return each coordinate and the (updated) coordinates array
+    return random_coordinate[0], random_coordinate[1], coordinates
 
 
 
@@ -68,16 +71,38 @@ def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_t
 
         # precompute pad
         pad = int(patch_size/2)
+        # open labels is they exist
+        if is_training:
+            # identify current image
+            current_gt_filename = gt_filenames[i]
+            # open the image
+            labels = (misc.imread(path.join(gt_folder, current_gt_filename)) / 255).astype('int32')
+            # assign labels mask mask
+            mask = labels
+        else:
+            # assign FOV mask as mask
+            mask = fov_mask
+
         # initialize a padded fov
-        sizes = fov_mask.shape
-        padded_fov = np.zeros(sizes, dtype=bool)
-        padded_fov[ pad:sizes[0]-pad, pad:sizes[1]-pad ] = fov_mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] > 0
+        sizes = mask.shape
+        padded_mask = np.zeros(sizes, dtype=bool)
+        padded_mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] = mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] > 0
         
+        # identify connected components in the mask and use its coordinates
+        # to extract patches
+        region_props = measure.regionprops(measure.label(padded_mask))
+        coordinates = None
+        for sub_reg in range(0, len(region_props)):
+            if coordinates is None:
+                coordinates = region_props[sub_reg].coords
+            else:
+                coordinates = np.concatenate((coordinates, region_props[sub_reg].coords))
+
         # extract N_subimgs patches
         for j in range(0, num_patches):
             
             # pick random coordinate inside the fov
-            x, y, padded_fov = pick_random_coordinate_inside_fov(padded_fov)
+            x, y, coordinates = pick_random_coordinate(coordinates)
 
             # get a random patch around the random coordinate
             if color:
@@ -89,12 +114,7 @@ def extract_random_patches(dataset_folder, patch_size=64, num_patches=1000, is_t
             misc.imsave(path.join(output_image_folder, current_image_filename[:-4] + str(j) + '.png'), random_patch)
             
             # if is training, crop the label as well
-            if is_training:
-                
-                # identify current image
-                current_gt_filename = gt_filenames[i]
-                # open the image
-                labels = (misc.imread(path.join(gt_folder, current_gt_filename)) / 255).astype('int32')
+            if is_training:               
                 random_patch_labels = labels[x-pad : x+pad, y-pad : y+pad]
                 misc.imsave(path.join(output_labels_folder, current_gt_filename[:-4] + str(j) + '.gif'), 
                     random_patch_labels)                
