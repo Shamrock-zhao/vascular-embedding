@@ -75,10 +75,9 @@ def generate_fov_masks(image_path, image_filenames, threshold=0.01):
 
 
 def replace_out_of_fov_pixels(image_rgb, fov_mask):
-    
+
     # get image size
     image_size = image_rgb.shape
-
     # for each color band, apply:
     for color_band in range(0, image_size[2]):
 

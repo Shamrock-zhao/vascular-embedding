@@ -7,13 +7,28 @@ from os import path, makedirs, listdir, rename
 from scipy import misc
 from shutil import rmtree
 from .files_processing import natural_key
+from .image_processing import equalize_fundus_image_intensities
 from skimage import measure
 
 
 
-def preprocess(image, fov_mask):
+def preprocess(image, fov_mask, preprocessing=None):
     
-    return image
+    if preprocessing == 'rgb':
+        preprocessed_image = image # RGB image
+
+    elif preprocessing == 'green':
+        preprocessed_image = image[:,:,1] # Green band
+
+    elif preprocessing == 'equalized':
+        preprocessed_image = equalize_fundus_image_intensities(np.copy(image), fov_mask) # RGB equalized
+
+    '''
+    image_size = preprocessed_image.shape
+    for i in range(0, image_size[2]):
+        preprocessed_image[:,:,i] = np.multiply(preprocessed_image[:,:,i], fov_mask)
+    '''
+    return preprocessed_image
 
 
 
@@ -32,7 +47,14 @@ def pick_random_coordinate(coordinates):
 
 
 
-def get_coordinates_from_mask(padded_mask):
+def get_coordinates_from_mask(mask, pad=0):
+    # pad the mask if necessary
+    if pad==0:
+        padded_mask = mask
+    else:
+        sizes = mask.shape
+        padded_mask = np.zeros(sizes, dtype=bool)
+        padded_mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] = mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] > 0
     # identify connected components in the mask and use its coordinates
     # to extract patches
     region_props = measure.regionprops(measure.label(padded_mask))
@@ -46,7 +68,51 @@ def get_coordinates_from_mask(padded_mask):
 
 
 
-def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patches=1000, color=True, overwrite=True):
+def extract_random_patches_from_image(image, labels, fov_mask, coordinates, filename, image_patch_folder, 
+    labels_patch_folder, patch_size=64, num_patches=1000):
+
+    '''
+    Given an image, its vessel labelling and FOV mask and a series of coordinates to sample,
+    extract num_patches squared patches of length patch_size and save them in
+    image_patch_folder and labels_patch_folder
+    '''
+
+    # preprocess the images using different methods
+    rgb = preprocess(image, fov_mask, 'rgb')
+    equalized_image = preprocess(np.copy(image), fov_mask, 'equalized')
+
+    # precompute pad
+    pad = int(patch_size/2)
+
+    # extract N_subimgs patches
+    for j in range(0, num_patches):
+        
+        # pick random coordinate
+        x, y, coordinates = pick_random_coordinate(coordinates)
+
+        # get a patch around the random coordinate
+        # from original RGB image
+        random_patch = rgb[x-pad:x+pad, y-pad:y+pad, :]
+
+        misc.imsave(path.join(image_patch_folder + '_rgb', filename[:-4] + str(j) + '.png'), random_patch)
+        # from equalized RGB image
+        random_patch = equalized_image[x-pad:x+pad, y-pad:y+pad, :]
+        misc.imsave(path.join(image_patch_folder + '_eq', filename[:-4] + str(j) + '.png'), random_patch)
+        
+        # crop the label as well
+        random_patch_labels = labels[x-pad : x+pad, y-pad : y+pad]
+        misc.imsave(path.join(labels_patch_folder, filename[:-4] + str(j) + '.gif'), random_patch_labels)
+
+
+
+def replace_folder(folder):
+    if path.exists(folder):
+        rmtree(folder)
+    makedirs(folder)
+
+
+
+def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patches=1000):
     
     # prepare input folders
     img_folder = path.join(dataset_folder, 'images')
@@ -55,129 +121,75 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
     # get image and fov masks filenames from input folder
     image_filenames = sorted(listdir(img_folder), key=natural_key)
     fov_masks_filenames = sorted(listdir(fov_masks_folder), key=natural_key)
-    # initialize output folder for patches
-    output_image_folder = path.join(dataset_folder, 'patches')
-    if overwrite:
-        rmtree(output_image_folder)
-    if not path.exists(output_image_folder):
-        makedirs(output_image_folder)
-
     # get also the labels filenames
     gt_folder = path.join(dataset_folder, 'labels')
     gt_filenames = sorted(listdir(gt_folder), key=natural_key)
-    # initialize output folder for labels patches
-    output_labels_folder = path.join(dataset_folder, 'labels_patches')
-    if overwrite:
-        rmtree(output_labels_folder)
-    if not path.exists(output_labels_folder):
-        makedirs(output_labels_folder)
 
-    # for each image
-    for i in range(0, len(image_filenames)):
-        
-        # identify current image
-        current_image_filename = image_filenames[i]
-        current_mask_filename = fov_masks_filenames[i]
-        print('Processing image ' + current_image_filename)
-        
-        # open image and preprocess it accordingly
-        image = misc.imread(path.join(img_folder, current_image_filename))
-        fov_mask = misc.imread(path.join(fov_masks_folder, current_mask_filename))  > 0
-        if len(fov_mask.shape) > 2:
-            fov_mask = fov_mask[:,:,0]
-        image = preprocess(image, fov_mask)
-
-        # precompute pad
-        pad = int(patch_size/2)
-        # identify current labels
-        current_gt_filename = gt_filenames[i]
-        # open the image
-        labels = (misc.imread(path.join(gt_folder, current_gt_filename)) / 255).astype('int32')
-
-        # get a padded mask
-        sizes = labels.shape
-        padded_mask = np.zeros(sizes, dtype=bool)
-        padded_mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] = labels[ pad:sizes[0]-pad, pad:sizes[1]-pad ] > 0
-
-        # get coordinates inside the padded mask
-        coordinates = get_coordinates_from_mask(padded_mask)
-
-        # extract N_subimgs patches
-        for j in range(0, num_patches // 2):
-            
-            # pick random coordinate
-            x, y, coordinates = pick_random_coordinate(coordinates)
-
-            # get a random patch around the random coordinate
-            if color:
-                random_patch = image[x-pad:x+pad, y-pad:y+pad, :]
-            else:
-                random_patch = image[x-pad:x+pad, y-pad:y+pad, 1]
-            
-            # save the patch
-            misc.imsave(path.join(output_image_folder, current_image_filename[:-4] + str(j) + '.png'),
-                random_patch)
-            
-            # crop the label as well            
-            random_patch_labels = labels[x-pad : x+pad, y-pad : y+pad]
-            misc.imsave(path.join(output_labels_folder, current_gt_filename[:-4] + str(j) + '.gif'), 
-                random_patch_labels)
-
-        # get a padded mask
-        sizes = labels.shape
-        padded_mask = np.zeros(sizes, dtype=bool)
-        padded_mask[ pad:sizes[0]-pad, pad:sizes[1]-pad ] = labels[ pad:sizes[0]-pad, pad:sizes[1]-pad ] == 0
-
-        # get coordinates inside the padded mask
-        coordinates = get_coordinates_from_mask(padded_mask)
-
-        # extract N_subimgs patches
-        for j in range(num_patches // 2, num_patches):
-            
-            # pick random coordinate
-            x, y, coordinates = pick_random_coordinate(coordinates)
-
-            # get a random patch around the random coordinate
-            if color:
-                random_patch = image[x-pad:x+pad, y-pad:y+pad, :]
-            else:
-                random_patch = image[x-pad:x+pad, y-pad:y+pad, 1]
-            
-            # save the patch
-            misc.imsave(path.join(output_image_folder, current_image_filename[:-4] + str(j) + '.png'),
-                random_patch)
-            
-            # crop the label as well            
-            random_patch_labels = labels[x-pad : x+pad, y-pad : y+pad]
-            misc.imsave(path.join(output_labels_folder, current_gt_filename[:-4] + str(j) + '.gif'), 
-                random_patch_labels)
-
-
-
-def extract_patches_from_training_datasets(dataset_name, patch_size=64, num_patches=1000, color=True, overwrite=True):
+    # initialize output folders based name
+    output_base_image_folder = path.join(dataset_folder, 'patches')
+    output_base_labels_folder = path.join(dataset_folder, 'patches_labels')
     
-    # Extract random patches from training/validation data sets
-    training_dataset_path = path.join('data', dataset_name, 'training')
+    # sampling strategies
+    sampling_strategies = ['uniform', 'guided-by-labels']
 
-    if not path.exists(path.join(training_dataset_path, 'patches')) or overwrite:
-        print('Extracting patches from {0} training set...'.format(dataset_name))
-        extract_random_patches_from_dataset(training_dataset_path, 
-                                            patch_size=patch_size, 
-                                            num_patches=num_patches, 
-                                            color=color,
-                                            overwrite=overwrite)
-    else:
-        print('{0} training set has precomputed patches.'.format(dataset_name))
+    # precompute pad
+    pad = int(patch_size/2)
 
-    # Extract random patches from the validation set    
-    validation_dataset_path = path.join('data', dataset_name, 'validation');
+    # extract patches according to each sampling strategy
+    for s in range(0, len(sampling_strategies)):
 
-    if not path.exists(path.join(validation_dataset_path, 'patches')) or overwrite:
-        print('Extracting patches from {0} validation set...'.format(dataset_name))
-        extract_random_patches_from_dataset(validation_dataset_path, 
-                                            patch_size=patch_size, 
-                                            num_patches=num_patches, 
-                                            color=color,
-                                            overwrite=overwrite)
-    else:
-        print('{0} validation set has precomputed patches.'.format(dataset_name))
+        # prepare output folders
+        output_image_folder = output_base_image_folder + '_' + sampling_strategies[s]
+        output_labels_folder = output_base_labels_folder + '_' + sampling_strategies[s]
+
+        # prepare output folders for patches extracted with different
+        # image preprocessing methods
+        replace_folder(output_image_folder + '_rgb')
+        replace_folder(output_image_folder + '_eq')
+        replace_folder(output_labels_folder)
+    
+        # for each image
+        for i in range(0, len(image_filenames)):
+
+            # identify current image
+            current_image_filename = image_filenames[i]
+            current_mask_filename = fov_masks_filenames[i]
+            # identify current labels
+            current_gt_filename = gt_filenames[i]
+
+            print('Processing image ' + current_image_filename)
+
+            # open image, labels and FOV
+            image = misc.imread(path.join(img_folder, current_image_filename))
+            labels = misc.imread(path.join(gt_folder, current_gt_filename)) > 0
+            fov_mask = misc.imread(path.join(fov_masks_folder, current_mask_filename))  > 0
+            if len(fov_mask.shape) > 2:
+                fov_mask = fov_mask[:,:,0]
+
+            # random sample the patches
+            if sampling_strategies[s]=='uniform':
+                
+                print('Sampling patches uniformly...')
+
+                # the valid coordinates will be inside the FOV and out of the
+                # padded region
+                coordinates = get_coordinates_from_mask(fov_mask, pad)
+                # randomly sample num_patches patches from the image and labels
+                extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
+                    output_labels_folder, patch_size, num_patches)
+
+            elif sampling_strategies[s]=='guided-by-labels':
+
+                print('Sampling patches guided by labels...')
+
+                # the valid coordinates will be inside the labels, first
+                coordinates = get_coordinates_from_mask(labels, pad)
+                # randomly sample patches from the image and labels
+                extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
+                    output_labels_folder, patch_size, num_patches // 2)
+
+                # the valid coordinates will be inside the labels, first
+                coordinates = get_coordinates_from_mask(np.multiply((1 - labels) > 0, fov_mask), pad)
+                # randomly sample num_patches // 2 patches from the image and labels
+                extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
+                    output_labels_folder, patch_size, num_patches // 2)
