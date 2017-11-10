@@ -2,12 +2,11 @@
 
 from configparser import ConfigParser
 from util.patch_processing import extract_random_patches_from_dataset
-from os import path
+from os import path, listdir, makedirs
 import numpy as np
 
 
-
-def prepare_data_for_experiments(patch_size=64, num_patches=1000):
+def extract_patches_from_datasets(patch_size=64, num_patches=1000):
     '''
     Prepares data for experiments, creating pickle files with training data for different configurations.
     '''
@@ -18,19 +17,26 @@ def prepare_data_for_experiments(patch_size=64, num_patches=1000):
     print('Extracting patches from DRIVE training set...')
     extract_random_patches_from_dataset(path.join('data', 'DRIVE', 'training'), 
                                         patch_size=patch_size, num_patches=num_patches)
+    extract_random_patches_from_dataset(path.join('data', 'DRIVE', 'validation'), 
+                                        patch_size=patch_size, num_patches=num_patches)
 
     print('Extracting patches from STARE training set...')
     extract_random_patches_from_dataset(path.join('data', 'STARE', 'training'), 
+                                        patch_size=patch_size, num_patches=num_patches)
+    extract_random_patches_from_dataset(path.join('data', 'STARE', 'validation'), 
                                         patch_size=patch_size, num_patches=num_patches)
 
     print('Extracting patches from CHASEDB1 training set...')
     extract_random_patches_from_dataset(path.join('data', 'CHASEDB1', 'training'), 
                                         patch_size=patch_size, num_patches=num_patches)
+    extract_random_patches_from_dataset(path.join('data', 'CHASEDB1', 'validation'), 
+                                        patch_size=patch_size, num_patches=num_patches)
 
     print('Extracting patches from HRF training set...')
     extract_random_patches_from_dataset(path.join('data', 'HRF', 'training'), 
+                                        patch_size=patch_size, num_patches=num_patches)
+    extract_random_patches_from_dataset(path.join('data', 'HRF', 'validation'), 
                                         patch_size=patch_size, num_patches=num_patches)                                    
-
 
 
 
@@ -47,4 +53,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # call the main function
-    prepare_data_for_experiments(args.patch_size, args.num_patches)
+    extract_patches_from_datasets(args.patch_size, args.num_patches)

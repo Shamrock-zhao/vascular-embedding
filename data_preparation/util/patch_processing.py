@@ -69,7 +69,7 @@ def get_coordinates_from_mask(mask, pad=0):
 
 
 def extract_random_patches_from_image(image, labels, fov_mask, coordinates, filename, image_patch_folder, 
-    labels_patch_folder, patch_size=64, num_patches=1000):
+    labels_patch_folder, patch_size=64, num_patches=1000, start_from=0):
 
     '''
     Given an image, its vessel labelling and FOV mask and a series of coordinates to sample,
@@ -85,7 +85,7 @@ def extract_random_patches_from_image(image, labels, fov_mask, coordinates, file
     pad = int(patch_size/2)
 
     # extract N_subimgs patches
-    for j in range(0, num_patches):
+    for j in range(start_from, num_patches):
         
         # pick random coordinate
         x, y, coordinates = pick_random_coordinate(coordinates)
@@ -192,4 +192,4 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
                 coordinates = get_coordinates_from_mask(np.multiply((1 - labels) > 0, fov_mask), pad)
                 # randomly sample num_patches // 2 patches from the image and labels
                 extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
-                    output_labels_folder, patch_size, num_patches // 2)
+                    output_labels_folder, patch_size, num_patches, num_patches // 2)
