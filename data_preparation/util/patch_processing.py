@@ -127,7 +127,7 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
 
     # initialize output folders based name
     output_base_image_folder = path.join(dataset_folder, 'patches')
-    output_base_labels_folder = path.join(dataset_folder, 'patches_labels')
+    output_base_labels_folder = path.join(dataset_folder, 'patches')
     
     # sampling strategies
     sampling_strategies = ['uniform', 'guided-by-labels']
@@ -140,7 +140,7 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
 
         # prepare output folders
         output_image_folder = output_base_image_folder + '_' + sampling_strategies[s]
-        output_labels_folder = output_base_labels_folder + '_' + sampling_strategies[s]
+        output_labels_folder = output_base_labels_folder + '_' + sampling_strategies[s] + '_labels'
 
         # prepare output folders for patches extracted with different
         # image preprocessing methods
