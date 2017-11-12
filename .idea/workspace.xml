@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="27f037d7-8a43-47f9-bb62-32045afa836e" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data_preparation/prepare_data_for_experiments.py" afterPath="$PROJECT_DIR$/data_preparation/prepare_data_for_experiments.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data_preparation/util/image_processing.py" afterPath="$PROJECT_DIR$/data_preparation/util/image_processing.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data_preparation/util/patch_processing.py" afterPath="$PROJECT_DIR$/data_preparation/util/patch_processing.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/data_preparation/initialize_data_for_experiments.py" afterPath="$PROJECT_DIR$/data_preparation/initialize_data_for_experiments.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/unet/evaluation.py" afterPath="$PROJECT_DIR$/unet/evaluation.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/unet/load.py" afterPath="$PROJECT_DIR$/unet/load.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/unet/losses.py" afterPath="$PROJECT_DIR$/unet/losses.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/unet/unet_parts.py" afterPath="$PROJECT_DIR$/unet/unet_parts.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -15,12 +18,26 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="patch_processing.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="patch_processing.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/data_preparation/util/patch_processing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="175">
-              <caret line="115" column="0" lean-forward="false" selection-start-line="115" selection-start-column="0" selection-end-line="115" selection-end-column="0" />
-              <folding />
+            <state relative-caret-position="283">
+              <caret line="121" column="0" lean-forward="false" selection-start-line="121" selection-start-column="0" selection-end-line="121" selection-end-column="0" />
+              <folding>
+                <marker date="1510337548520" expanded="true" signature="361:397" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="train.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/unet/train.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="699">
+              <caret line="179" column="11" lean-forward="false" selection-start-line="179" selection-start-column="11" selection-end-line="179" selection-end-column="11" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -58,8 +75,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -72,10 +87,17 @@
               <item name="encoder-based-regularization" type="462c0819:PsiDirectoryNode" />
               <item name="data_preparation" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="encoder-based-regularization" type="b2602c69:ProjectViewProjectNode" />
+              <item name="encoder-based-regularization" type="462c0819:PsiDirectoryNode" />
+              <item name="unet" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -161,43 +183,58 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/data_preparation/util/patch_processing.py</url>
-          <line>82</line>
+          <line>87</line>
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/unet/train.py</url>
+          <line>178</line>
+          <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="1" />
+      <option name="time" value="2" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/data_preparation/setup_data.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/data_preparation/util/patch_processing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
+          <folding>
+            <marker date="1510337548520" expanded="true" signature="361:397" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/data_preparation/setup_data.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="573">
-          <caret line="63" column="18" lean-forward="false" selection-start-line="63" selection-start-column="8" selection-end-line="63" selection-end-column="30" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/data_preparation/setup_data.py" />
     <entry file="file://$PROJECT_DIR$/data_preparation/util/patch_processing.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="175">
-          <caret line="115" column="0" lean-forward="false" selection-start-line="115" selection-start-column="0" selection-end-line="115" selection-end-column="0" />
-          <folding />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <marker date="1510337548520" expanded="true" signature="361:397" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data_preparation/setup_data.py" />
+    <entry file="file://$PROJECT_DIR$/data_preparation/util/patch_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="283">
+          <caret line="121" column="0" lean-forward="false" selection-start-line="121" selection-start-column="0" selection-end-line="121" selection-end-column="0" />
+          <folding>
+            <marker date="1510337548520" expanded="true" signature="361:397" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/unet/train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="699">
+          <caret line="179" column="11" lean-forward="false" selection-start-line="179" selection-start-column="11" selection-end-line="179" selection-end-column="11" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

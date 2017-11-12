@@ -10,7 +10,7 @@ def prepare_data_for_experiments(data_path, experiment=0):
     """ Prepare data for experiments, grouping patches in separate folders """
 
     if experiment==0 or experiment==1:
-        prepare_all_data_together(data_path, ['STARE'])
+        prepare_all_data_together(data_path, ['DRIVE', 'STARE', 'CHASEDB1', 'HRF'])
 
 
 

@@ -14,6 +14,7 @@ from torch import optim
 from optparse import OptionParser
 import sys
 import os
+import numpy as np
 
 from configparser import ConfigParser
 from os import path, makedirs, listdir, rename
@@ -68,8 +69,8 @@ def train_net(net, data_path, output_path, config):
     N_train = len(iddataset['train'])
 
     # get the training and validation sets
-    train = get_imgs_and_masks(iddataset['train'], dir_training_img, dir_training_labels)
-    val = get_imgs_and_masks(iddataset['val'], dir_validation_img, dir_validation_labels)
+    #train = get_imgs_and_masks(iddataset['train'], dir_training_img, dir_training_labels)
+    #val = get_imgs_and_masks(iddataset['val'], dir_validation_img, dir_validation_labels)
 
     #setup the optimizer and the loss functions
     optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
@@ -110,9 +111,10 @@ def train_net(net, data_path, output_path, config):
 
             loss = criterion(probs_flat, y_flat.float())
             epoch_loss += loss.data[0]
-
+            '''
             print('{0:.4f} --- loss: {1:.6f}'.format(i*batch_size/N_train,
                                                      loss.data[0]))
+            '''
 
             optimizer.zero_grad()
 
@@ -148,11 +150,6 @@ def train(config_file, load_weights=False):
     num_channels = int(config['architecture']['num-channels'])
     num_classes = int(config['architecture']['num-classes'])
     batch_norm = parse_boolean(config['architecture']['batch-norm'])
-
-    # parse training parameters
-    n_epochs = int(config['training']['epochs'])
-    batch_size = int(config['training']['batch-size'])
-    lr = float(config['training']['learning-rate'])
 
     # initialize the u-net
     net = UNet(num_channels, num_classes, batch_norm)

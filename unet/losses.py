@@ -10,10 +10,15 @@ class DiceCoeff(Function):
     """Dice coeff for individual examples"""
     def forward(self, input, target):
         self.save_for_backward(input, target)
+        
+        # force flattening
+        input = input.view(-1)
+        target = target.view(-1).float()
+        
         self.inter = torch.dot(input, target) + 0.0001
         self.union = torch.sum(input) + torch.sum(target) + 0.0001
 
-        t = 2*self.inter.float()/self.union.float()
+        t = 2 * self.inter.float() / self.union.float()
         return t
 
     # This function has only a single output, so it gets only one gradient

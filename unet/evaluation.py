@@ -10,6 +10,8 @@ import torch.nn.functional as F
 
 def eval_net(net, dataset, gpu=False):
     tot = 0
+    quantity = 0
+
     for i, b in enumerate(dataset):
         X = b[0]
         y = b[1]
@@ -25,33 +27,11 @@ def eval_net(net, dataset, gpu=False):
             y = Variable(y, volatile=True)
 
         y_pred = net(X)
-
-        y_pred = (F.sigmoid(y_pred) > 0.6).float()
-        # y_pred = F.sigmoid(y_pred).float()
+        y_pred = (F.sigmoid(y_pred) > 0.5).float()
+        #y_pred.data = y_pred.data.squeeze(0)
 
         dice = dice_coeff(y_pred, y.float()).data[0]
         tot += dice
-
-        if 1:
-            X = X.data.squeeze(0).cpu().numpy()
-            X = np.transpose(X, axes=[1, 2, 0])
-            y = y.data.squeeze(0).cpu().numpy()
-            y_pred = y_pred.data.squeeze(0).squeeze(0).cpu().numpy()
-            print(y_pred.shape)
-
-            fig = plt.figure()
-            ax1 = fig.add_subplot(1, 4, 1)
-            ax1.imshow(X)
-            ax2 = fig.add_subplot(1, 4, 2)
-            ax2.imshow(y)
-            ax3 = fig.add_subplot(1, 4, 3)
-            ax3.imshow((y_pred > 0.5))
-
-
-            #Q = dense_crf(((X*255).round()).astype(np.uint8), y_pred)
-            #ax4 = fig.add_subplot(1, 4, 4)
-            #print(Q)
-            #ax4.imshow(Q > 0.5)
-            #plt.show()
-
-    return tot / i
+        quantity += 1
+    
+    return tot / quantity

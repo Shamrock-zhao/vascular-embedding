@@ -87,7 +87,7 @@ class up_block(nn.Module):
 
     def __init__(self, in_channels, out_channels, batch_norm=False):
         super(up_block, self).__init__()
-        self.up = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.up = nn.Upsample(scale_factor=2)
         self.conv = double_conv(in_channels, out_channels, batch_norm)
 
     def forward(self, x1, x2):
