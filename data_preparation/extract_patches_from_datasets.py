@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", help="size of the patch", type=int, default=64)
     parser.add_argument("--num_patches", help="number of patches to extract from each image", type=int, default=200000)
-    parser.add_argument("--overwrite", help="overwrite existing folders", type=str, default=False)
+    parser.add_argument("--overwrite", help="overwrite existing folders", type=str, default='False')
 
     args = parser.parse_args()
     args.overwrite = args.overwrite.upper()=='TRUE'
