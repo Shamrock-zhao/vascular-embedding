@@ -87,7 +87,9 @@ def train_net(net, data_path, output_path, config):
 
         if 1:
             val_dice = eval_net(net, val, use_gpu)
+            print('Epoch finished ! Validation Loss: {}'.format(1 - val_dice))
             print('Validation Dice Coeff: {}'.format(val_dice))
+            
 
         for i, b in enumerate(batch(train, batch_size)):
             X = np.array([i[0] for i in b])
@@ -122,10 +124,10 @@ def train_net(net, data_path, output_path, config):
 
             optimizer.step()
 
-        print('Epoch finished ! Loss: {}'.format(epoch_loss/i))
+        print('Epoch finished ! Training Loss: {}'.format(epoch_loss/i))
 
         torch.save(net.state_dict(),
-                    dir_checkpoints + 'CP{}.pth'.format(epoch+1))
+                    path.join(dir_checkpoints + 'CP{}.pth'.format(epoch+1)))
         print('Checkpoint {} saved !'.format(epoch+1))
 
 

@@ -112,7 +112,7 @@ def replace_folder(folder):
 
 
 
-def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patches=1000):
+def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patches=100000):
     
     # prepare input folders
     img_folder = path.join(dataset_folder, 'images')
@@ -124,6 +124,9 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
     # get also the labels filenames
     gt_folder = path.join(dataset_folder, 'labels')
     gt_filenames = sorted(listdir(gt_folder), key=natural_key)
+
+    # compute the number of patches to extract for each image
+    num_patches_per_image = num_patches // 100000
 
     # initialize output folders based name
     output_base_image_folder = path.join(dataset_folder, 'patches')
@@ -176,7 +179,7 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
                 coordinates = get_coordinates_from_mask(fov_mask, pad)
                 # randomly sample num_patches patches from the image and labels
                 extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
-                    output_labels_folder, patch_size, num_patches)
+                    output_labels_folder, patch_size, num_patches_per_image)
 
             elif sampling_strategies[s]=='guided-by-labels':
 
@@ -186,10 +189,10 @@ def extract_random_patches_from_dataset(dataset_folder, patch_size=64, num_patch
                 coordinates = get_coordinates_from_mask(labels, pad)
                 # randomly sample patches from the image and labels
                 extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
-                    output_labels_folder, patch_size, num_patches // 2)
+                    output_labels_folder, patch_size, num_patches_per_image // 2)
 
                 # the valid coordinates will be inside the labels, first
                 coordinates = get_coordinates_from_mask(np.multiply((1 - labels) > 0, fov_mask), pad)
                 # randomly sample num_patches // 2 patches from the image and labels
                 extract_random_patches_from_image(image, labels, fov_mask, coordinates, current_image_filename, output_image_folder, 
-                    output_labels_folder, patch_size, num_patches, num_patches // 2)
+                    output_labels_folder, patch_size, num_patches_per_image, num_patches_per_image // 2)
