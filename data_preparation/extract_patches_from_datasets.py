@@ -6,7 +6,7 @@ from os import path, listdir, makedirs
 import numpy as np
 
 
-def extract_patches_from_datasets(patch_size=64, num_patches=1000):
+def extract_patches_from_datasets(patch_size=64, num_patches=200000, overwrite=False):
     '''
     Prepares data for experiments, creating pickle files with training data for different configurations.
     '''
@@ -14,21 +14,16 @@ def extract_patches_from_datasets(patch_size=64, num_patches=1000):
     # Set a random seed for reproducibility
     np.random.seed(7)
 
-    print('Extracting patches from DRIVE training set...')
-    extract_random_patches_from_dataset(path.join('data', 'DRIVE', 'training'), 
-                                        patch_size=patch_size, num_patches=num_patches)
+    datasets = ['DRIVE', 'STARE', 'CHASEDB1', 'HRF']
 
-    print('Extracting patches from STARE training set...')
-    extract_random_patches_from_dataset(path.join('data', 'STARE', 'training'), 
-                                        patch_size=patch_size, num_patches=num_patches)
-
-    print('Extracting patches from CHASEDB1 training set...')
-    extract_random_patches_from_dataset(path.join('data', 'CHASEDB1', 'training'), 
-                                        patch_size=patch_size, num_patches=num_patches)
-
-    print('Extracting patches from HRF training set...')
-    extract_random_patches_from_dataset(path.join('data', 'HRF', 'training'), 
-                                        patch_size=patch_size, num_patches=num_patches)                                   
+    # For each database
+    for i in range(0, len(datasets)):
+        if overwrite or not path.exists(path.join('data', datasets[i], 'training', 'patches_guided-by-labels_labels')):
+            print('Extracting patches from {} training set...'.format(datasets[i]))
+            extract_random_patches_from_dataset(path.join('data', datasets[i], 'training'), 
+                                                patch_size=patch_size, num_patches=num_patches)
+        else:
+            print('{} training set precomputed.'.format(datasets[i]))
 
 
 
@@ -40,9 +35,11 @@ if __name__ == '__main__':
     # create an argument parser to control the input parameters
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_size", help="size of the patch", type=int, default=64)
-    parser.add_argument("--num_patches", help="number of patches to extract from each image", type=int, default=100000)
+    parser.add_argument("--num_patches", help="number of patches to extract from each image", type=int, default=200000)
+    parser.add_argument("--overwrite", help="overwrite existing folders", type=str, default=False)
 
     args = parser.parse_args()
+    args.overwrite = args.overwrite.upper()=='TRUE'
 
     # call the main function
-    extract_patches_from_datasets(args.patch_size, args.num_patches)
+    extract_patches_from_datasets(args.patch_size, args.num_patches, args.overwrite)
