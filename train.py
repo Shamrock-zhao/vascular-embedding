@@ -128,8 +128,9 @@ def train(config_file, load_weights=False):
                 update='append')
 
             # print loss every 20 iterations
-            if (i+1) % 20 == 0:
-                print("Epoch [%d/%d] Loss: %.4f" % (epoch+1, n_epochs, loss.data[0]))
+            if (i+1) % 200 == 0:
+                percentage = i / (loader.n_training_samples / int(config['training']['batch-size']))
+                print("Epoch [%d/%d] - Progress: %.4f - Loss: %.4f" % (epoch+1, n_epochs, percentage, loss.data[0]))
 
         # test_output = model(test_image)
         # predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
