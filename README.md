@@ -7,6 +7,7 @@ This code requires to pre-install certain libraries:
 * python 3.6
 * scipy 0.19.1
 * scikit-image 0.13.0
+* visdom
 
 We tested our system in these combinations of architectures and operating systems:
 - Ubuntu 14.04, 64-bits.
