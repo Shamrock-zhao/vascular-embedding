@@ -57,8 +57,15 @@ def train(config_file, load_weights=False):
                            Y=torch.zeros((1)).cpu(),
                            opts=dict(xlabel='minibatches',
                                      ylabel='Loss',
-                                     title='Training Loss - ' + experiment_name,
+                                     title='Training Loss per minibatch - ' + experiment_name,
                                      legend=['Loss']))
+
+    epoch_plot = vis.line(X=torch.zeros((1,)).cpu(),
+                          Y=torch.zeros((1)).cpu(),
+                          opts=dict(xlabel='Epoch',
+                                    ylabel='Loss',
+                                    title='Training Loss per epoch - ' + experiment_name,
+                                    legend=['Loss']))
 
     # setup model
     model = get_model(config['architecture']['architecture'], 
@@ -89,6 +96,9 @@ def train(config_file, load_weights=False):
     # TRAINING ------------------
     # ---------------------------
     n_epochs = int(config['training']['epochs'])
+    epoch_size = len(loader) // int(config['training']['batch-size'])
+    current_epoch_loss = 0.0
+
     for epoch in range(0, n_epochs):
         
         # for each batch
@@ -105,10 +115,6 @@ def train(config_file, load_weights=False):
                 images = Variable(images)
                 labels = Variable(labels)
 
-            
-            #images = images.float()
-            #labels = labels.float()
-
             # clear the gradients
             optimizer.zero_grad()
             # forward pass of the batch through the model
@@ -119,6 +125,9 @@ def train(config_file, load_weights=False):
             loss.backward()
             # gradient update
             optimizer.step()
+
+            # accumulate loss to print per epoch
+            current_epoch_loss += loss.data[0]
 
             # plot on screen
             vis.line(
@@ -140,7 +149,13 @@ def train(config_file, load_weights=False):
         # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
 
-        torch.save(model, path.join(dir_checkpoints, "{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch)))
+        vis.line(
+            X=torch.ones((1,1)).cpu() * epoch,
+            Y=torch.Tensor([current_epoch_loss]).unsqueeze(0).cpu() / epoch_size,
+            win=epoch_plot,
+            update='append')
+
+        torch.save(model, path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
 
 
 
