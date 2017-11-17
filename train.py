@@ -22,6 +22,8 @@ from learning.loader import get_loader
 from learning.loss import cross_entropy2d
 from learning.metrics import scores
 
+import pytorch_utils
+
 
 
 def train(config_file, load_weights=False):
@@ -53,19 +55,27 @@ def train(config_file, load_weights=False):
 
     # setup visdom for visualization
     vis = visdom.Visdom()
+    # loss per minibatch
     loss_window = vis.line(X=torch.zeros((1,)).cpu(),
                            Y=torch.zeros((1)).cpu(),
                            opts=dict(xlabel='minibatches',
                                      ylabel='Loss',
                                      title='Training Loss per minibatch - ' + experiment_name,
                                      legend=['Loss']))
-
+    # training loss per epoch
     epoch_plot = vis.line(X=torch.zeros((1,)).cpu(),
                           Y=torch.zeros((1)).cpu(),
                           opts=dict(xlabel='Epoch',
                                     ylabel='Loss',
                                     title='Training Loss per epoch - ' + experiment_name,
                                     legend=['Loss']))
+    # validation loss
+    validation_plot = vis.line(X=torch.zeros((1,)).cpu(),
+                          Y=torch.zeros((1)).cpu(),
+                          opts=dict(xlabel='Epoch',
+                                    ylabel='Loss',
+                                    title='Validation Loss - ' + experiment_name,
+                                    legend=['Loss', 'Jaccard']))
 
     # setup model
     model = get_model(config['architecture']['architecture'], 
@@ -81,7 +91,9 @@ def train(config_file, load_weights=False):
                                     momentum = float(config['training']['momentum']), 
                                     weight_decay = float(config['training']['weight-decay']))
     else:
-        raise 'Optimizer {} not available'.format(config['training']['optimizer'])
+        raise "Optimizer {} not available".format(config['training']['optimizer'])
+
+    logger = pytorch_utils.StatsLogger()
 
     if torch.cuda.is_available():
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
@@ -127,6 +139,9 @@ def train(config_file, load_weights=False):
             # gradient update
             optimizer.step()
 
+            # log the loss
+            logger.log('train', i, 'crossentropy2d loss', loss.data[0].unsqueeze(0).cpu())
+
             # accumulate loss to print per epoch
             current_epoch_loss += loss.data[0]
 
@@ -150,15 +165,84 @@ def train(config_file, load_weights=False):
         # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
 
+        # switch to the validation set
+        loader.split = 'validation'
+        # Run validation
+        mean_val_loss, mean_val_jaccard_index = validate(loader, model, config, logger)
+
+        # Plot training loss per epoch
         vis.line(
             X=torch.ones((1,1)).cpu() * epoch,
             Y=torch.Tensor([current_epoch_loss]).unsqueeze(0).cpu() / epoch_size,
             win=epoch_plot,
             update='append')
 
-        current_epoch_loss = 0.0
+        # Plot validation loss per epoch
+        vis.line(
+            X=torch.ones((1,1)).cpu() * epoch,
+            Y=torch.Tensor([mean_val_loss, mean_val_jaccard_index]).unsqueeze(0).cpu(),
+            win=validation_plot,
+            update='append')
 
+
+        # restart current_epoch_loss
+        current_epoch_loss = 0.0
+        # switch back to training
+        loader.split = 'training'
+
+        # save current checkpoint
         torch.save(model, path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
+
+
+
+def validate(loader, model, config, logger):
+    
+    # set model for evaluation
+    model.eval()
+    # initialize the validation loader
+    validation_loader = data.DataLoader(loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=False)
+    # and the confusion matrix
+    conf_matrix = pytorch_utils.ConfusionMatrix(int(config['architecture']['num-classes']))
+
+    mean_jaccard_index = 0.0
+    mean_loss = 0.0
+    n_iterations = len(loader) // int(config['training']['batch-size'])
+
+    # iterate for each batch of validation samples
+    for i, (images, labels) in enumerate(validation_loader):
+        
+        # turn the batch of images and labels to a cuda variable if available
+        images = images.float()
+        images = images.permute(0, 3, 1, 2)
+
+        if torch.cuda.is_available():
+            images = Variable(images).cuda()
+            labels = Variable(labels).cuda()
+        else:
+            images = Variable(images)
+            labels = Variable(labels)
+
+        # forward pass of the batch of images
+        scores = model(images)
+        # evaluate the cross entropy loss
+        loss = cross_entropy2d(scores, labels)
+
+        # get the segmentation for each validation sample in the batch
+        conf, assignment = scores.data.max(1)
+        # compute standard evaluation metrics for segmentation problems
+        conf_matrix.add(labels, assignment)
+
+        # compute the jaccard index
+        jaccard_index = np.array(conf_matrix.jaccard())
+
+        mean_loss += loss.data[0]
+        mean_jaccard_index += mean_jaccard_index
+
+        # log all the results
+        logger.log('val', i, 'crossentropy2d loss', loss.data[0].unsqueeze(0).cpu())
+        logger.log('val', i, 'jaccard index', jaccard_index)
+
+    return mean_loss / n_iterations, mean_jaccard_index / n_iterations
 
 
 
