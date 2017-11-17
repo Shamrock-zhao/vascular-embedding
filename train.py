@@ -71,7 +71,8 @@ def train(config_file, load_weights=False):
     model = get_model(config['architecture']['architecture'], 
                       int(config['architecture']['num-channels']),
                       int(config['architecture']['num-classes']),
-                      parse_boolean(config['architecture']['batch-norm']))
+                      parse_boolean(config['architecture']['batch-norm']),
+                      float(config['architecture']['dropout']))
 
     # initialize the optimizer
     if config['training']['optimizer']=='SGD':
@@ -154,6 +155,8 @@ def train(config_file, load_weights=False):
             Y=torch.Tensor([current_epoch_loss]).unsqueeze(0).cpu() / epoch_size,
             win=epoch_plot,
             update='append')
+
+        current_epoch_loss = 0.0
 
         torch.save(model, path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
 

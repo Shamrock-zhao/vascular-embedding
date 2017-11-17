@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 class unetConv2(nn.Module):
-    def __init__(self, in_size, out_size, is_batchnorm):
+    def __init__(self, in_size, out_size, is_batchnorm, dropout):
         super(unetConv2, self).__init__()
 
         if is_batchnorm:
@@ -21,20 +21,28 @@ class unetConv2(nn.Module):
                                        nn.ReLU())
             self.conv2 = nn.Sequential(nn.Conv2d(out_size, out_size, 3, 1, 1),
                                        nn.ReLU())
+        if dropout > 0.0:
+            self.drop = nn.Dropout(dropout)
+        else:
+            self.drop = None
+
     def forward(self, inputs):
         outputs = self.conv1(inputs)
+        if not (self.drop is None):
+            outputs = self.drop(outputs)
         outputs = self.conv2(outputs)
         return outputs
 
 
 class unetUp(nn.Module):
-    def __init__(self, in_size, out_size, is_deconv):
+    def __init__(self, in_size, out_size, is_deconv, dropout):
         super(unetUp, self).__init__()
-        self.conv = unetConv2(in_size, out_size, False)
+        self.conv = unetConv2(in_size, out_size, False, dropout)
         if is_deconv:
             self.up = nn.ConvTranspose2d(in_size, out_size, kernel_size=2, stride=2)
         else:
             self.up = nn.Upsample(scale_factor=2)
+
 
     def forward(self, inputs1, inputs2):
         outputs2 = self.up(inputs2)
