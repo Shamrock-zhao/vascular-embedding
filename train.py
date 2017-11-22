@@ -20,7 +20,7 @@ from torch.utils import data
 from learning.models import get_model
 from learning.loader import get_loader
 from learning.loss import cross_entropy2d
-from learning.metrics import jaccard_index
+from learning.metrics import dice_index
 from learning.plots import VisdomLinePlotter
 
 
@@ -132,12 +132,12 @@ def train(config_file, load_weights=False):
         # switch to the validation set
         loader.split = 'validation'
         # Run validation
-        mean_val_loss, mean_val_jaccard_index = validate(loader, model, config)
+        mean_val_loss, mean_val_dice = validate(loader, model, config)
 
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
         plotter.plot('loss', 'validation', epoch+1, mean_val_loss)
-        plotter.plot('jaccard', 'validation', epoch+1, mean_val_jaccard_index)
+        plotter.plot('dice', 'validation', epoch+1, mean_val_dice)
 
         # restart current_epoch_loss
         current_epoch_loss = 0.0
@@ -156,7 +156,7 @@ def validate(loader, model, config):
     # initialize the validation loader
     validation_loader = data.DataLoader(loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=False)
 
-    mean_jaccard_index = 0.0
+    mean_val_dice = 0.0
     mean_loss = 0.0
     n_iterations = len(loader) // int(config['training']['batch-size'])
 
@@ -185,16 +185,16 @@ def validate(loader, model, config):
 
         # sum up all the jaccard indices
         for gt_, pred_ in zip(gt, pred):
-            mean_jaccard_index += jaccard_index(gt_, pred_)
+            mean_val_dice += dice_index(gt_, pred_)
         # and the loss function
         mean_loss += loss.data[0]
     
     # Compute average loss
     mean_loss = mean_loss / n_iterations
     # Compute average Jaccard
-    mean_jaccard_index = mean_jaccard_index / len(loader)
+    mean_val_dice = mean_val_dice / len(loader)
 
-    return mean_loss, mean_jaccard_index
+    return mean_loss, mean_val_dice
 
 
 
