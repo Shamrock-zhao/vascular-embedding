@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 import utils
-import cPickle as pickle
 from datetime import datetime
 from collections import OrderedDict, namedtuple
 
@@ -24,15 +23,6 @@ except TypeError:
         return F.softmax(logits)
 
 
-def pkl_dump(obj, path):
-    with utils.write(path, 'wb') as f:
-        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def pkl_load(filename):
-    with open(filename, 'rb') as f:
-        obj = pickle.load(f)
-    return obj
 
 
 class IterTimeCurve(namedtuple('IterTimeCurve', ['x', 't', 'y'])):

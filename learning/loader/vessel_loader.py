@@ -45,7 +45,7 @@ class VesselPatchLoader(data.Dataset):
 
 
     def __len__(self):
-        return len(self.files[self.split])
+        return 64#len(self.files[self.split])
 
 
     def __getitem__(self, index):

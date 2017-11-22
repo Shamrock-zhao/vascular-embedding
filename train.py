@@ -20,7 +20,7 @@ from torch.utils import data
 from learning.models import get_model
 from learning.loader import get_loader
 from learning.loss import cross_entropy2d
-from learning.metrics import scores
+from learning.metrics import jaccard_index
 
 import pytorch_utils
 
@@ -63,19 +63,18 @@ def train(config_file, load_weights=False):
                                      title='Training Loss per minibatch - ' + experiment_name,
                                      legend=['Loss']))
     # training loss per epoch
-    epoch_plot = vis.line(X=torch.zeros((1,)).cpu(),
-                          Y=torch.zeros((1)).cpu(),
+    epoch_plot = vis.line(X=torch.zeros((2,)).cpu(),
+                          Y=torch.zeros((2)).cpu(),
                           opts=dict(xlabel='Epoch',
                                     ylabel='Loss',
-                                    title='Training Loss per epoch - ' + experiment_name,
-                                    legend=['Loss']))
-    # validation loss
+                                    title='Training/Validation Loss per epoch - ' + experiment_name))
+    # validation jaccard
     validation_plot = vis.line(X=torch.zeros((1,)).cpu(),
                           Y=torch.zeros((1)).cpu(),
                           opts=dict(xlabel='Epoch',
                                     ylabel='Loss',
                                     title='Validation Loss - ' + experiment_name,
-                                    legend=['Loss', 'Jaccard']))
+                                    legend=['Jaccard']))
 
     # setup model
     model = get_model(config['architecture']['architecture'], 
@@ -140,7 +139,7 @@ def train(config_file, load_weights=False):
             optimizer.step()
 
             # log the loss
-            logger.log('train', i, 'crossentropy2d loss', loss.data[0].unsqueeze(0).cpu())
+            #logger.log('train', i, 'crossentropy2d loss', loss.data[0])
 
             # accumulate loss to print per epoch
             current_epoch_loss += loss.data[0]
@@ -151,7 +150,7 @@ def train(config_file, load_weights=False):
                 Y=torch.Tensor([loss.data[0]]).unsqueeze(0).cpu(),
                 win=loss_window,
                 update='append')
-
+            
             # print loss every 20 iterations
             if (i+1) % 200 == 0:
                 percentage = i / (loader.n_training_samples / int(config['training']['batch-size']))
@@ -168,19 +167,21 @@ def train(config_file, load_weights=False):
         # switch to the validation set
         loader.split = 'validation'
         # Run validation
-        mean_val_loss, mean_val_jaccard_index = validate(loader, model, config, logger)
+        mean_val_loss, mean_val_jaccard_index = validate(loader, model, config)
+        print(mean_val_loss)
+        print(mean_val_jaccard_index)
 
         # Plot training loss per epoch
         vis.line(
-            X=torch.ones((1,1)).cpu() * epoch,
-            Y=torch.Tensor([current_epoch_loss]).unsqueeze(0).cpu() / epoch_size,
+            X=torch.ones((2,1)).cpu() * epoch,
+            Y=torch.Tensor([current_epoch_loss / epoch_size, mean_val_loss]),
             win=epoch_plot,
             update='append')
 
         # Plot validation loss per epoch
         vis.line(
             X=torch.ones((1,1)).cpu() * epoch,
-            Y=torch.Tensor([mean_val_loss, mean_val_jaccard_index]).unsqueeze(0).cpu(),
+            Y=torch.Tensor([mean_val_jaccard_index]).unsqueeze(0).cpu(),
             win=validation_plot,
             update='append')
 
@@ -195,7 +196,7 @@ def train(config_file, load_weights=False):
 
 
 
-def validate(loader, model, config, logger):
+def validate(loader, model, config):
     
     # set model for evaluation
     model.eval()
@@ -216,10 +217,10 @@ def validate(loader, model, config, logger):
         images = images.permute(0, 3, 1, 2)
 
         if torch.cuda.is_available():
-            images = Variable(images).cuda()
+            images = Variable(images, volatile=True).cuda()
             labels = Variable(labels).cuda()
         else:
-            images = Variable(images)
+            images = Variable(images, volatile=True)
             labels = Variable(labels)
 
         # forward pass of the batch of images
@@ -227,22 +228,22 @@ def validate(loader, model, config, logger):
         # evaluate the cross entropy loss
         loss = cross_entropy2d(scores, labels)
 
-        # get the segmentation for each validation sample in the batch
-        conf, assignment = scores.data.max(1)
-        # compute standard evaluation metrics for segmentation problems
-        conf_matrix.add(labels, assignment)
+        # get predictions and ground truth
+        pred = scores.data.max(1)[1].cpu().numpy()
+        gt = labels.data.cpu().numpy()
 
-        # compute the jaccard index
-        jaccard_index = np.array(conf_matrix.jaccard())
-
+        # sum up all the jaccard indices
+        for gt_, pred_ in zip(gt, pred):
+            mean_jaccard_index += jaccard_index(gt_, pred_)
+        # and the loss function
         mean_loss += loss.data[0]
-        mean_jaccard_index += mean_jaccard_index
+    
+    # Compute average loss
+    mean_loss = mean_loss / n_iterations
+    # Compute average Jaccard
+    mean_jaccard_index = mean_jaccard_index / len(loader)
 
-        # log all the results
-        logger.log('val', i, 'crossentropy2d loss', loss.data[0].unsqueeze(0).cpu())
-        logger.log('val', i, 'jaccard index', jaccard_index)
-
-    return mean_loss / n_iterations, mean_jaccard_index / n_iterations
+    return mean_loss, mean_jaccard_index
 
 
 

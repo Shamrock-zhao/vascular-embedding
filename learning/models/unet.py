@@ -45,7 +45,7 @@ class unet(nn.Module):
 
         final = self.final(up1)
 
-        return F.log_softmax(final)
+        return final
 
 
 
