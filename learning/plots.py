@@ -1,4 +1,6 @@
+
 from visdom import Visdom
+import numpy as np
 
 class VisdomLinePlotter(object):
     """Plots to Visdom"""

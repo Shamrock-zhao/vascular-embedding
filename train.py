@@ -11,7 +11,7 @@ import torchvision.models as models
 
 import matplotlib.pyplot as plt
 
-from os import path
+from os import path, makedirs
 from configparser import ConfigParser
 
 from torch.autograd import Variable
@@ -21,8 +21,7 @@ from learning.models import get_model
 from learning.loader import get_loader
 from learning.loss import cross_entropy2d
 from learning.metrics import jaccard_index
-
-import pytorch_utils
+from learning.plots import VisdomLinePlotter
 
 
 
@@ -36,8 +35,13 @@ def train(config_file, load_weights=False):
     # retrieve input data path and output path
     data_path = config['folders']['data-path']
     output_path = path.join(config['folders']['output-path'], experiment_name)
+    if not path.exists(output_path):
+        makedirs(output_path)
     # prepare folder for checkpoints
     dir_checkpoints = path.join(output_path, 'checkpoints')
+    if not path.exists(dir_checkpoints):
+        makedirs(dir_checkpoints)
+
     # get type of patch sampling and color preprocessing
     type_of_sampling = 'patches_' + config['experiment']['sampling-strategy']
     type_of_patch = type_of_sampling + '_' + config['experiment']['image-preprocessing']
@@ -55,26 +59,8 @@ def train(config_file, load_weights=False):
 
     # setup visdom for visualization
     vis = visdom.Visdom()
-    # loss per minibatch
-    loss_window = vis.line(X=torch.zeros((1,)).cpu(),
-                           Y=torch.zeros((1)).cpu(),
-                           opts=dict(xlabel='minibatches',
-                                     ylabel='Loss',
-                                     title='Training Loss per minibatch - ' + experiment_name,
-                                     legend=['Loss']))
-    # training loss per epoch
-    epoch_plot = vis.line(X=torch.zeros((2,)).cpu(),
-                          Y=torch.zeros((2)).cpu(),
-                          opts=dict(xlabel='Epoch',
-                                    ylabel='Loss',
-                                    title='Training/Validation Loss per epoch - ' + experiment_name))
-    # validation jaccard
-    validation_plot = vis.line(X=torch.zeros((1,)).cpu(),
-                          Y=torch.zeros((1)).cpu(),
-                          opts=dict(xlabel='Epoch',
-                                    ylabel='Loss',
-                                    title='Validation Loss - ' + experiment_name,
-                                    legend=['Jaccard']))
+    # losses per epoch
+    plotter = VisdomLinePlotter(env_name=config['experiment']['name'])
 
     # setup model
     model = get_model(config['architecture']['architecture'], 
@@ -92,17 +78,8 @@ def train(config_file, load_weights=False):
     else:
         raise "Optimizer {} not available".format(config['training']['optimizer'])
 
-    logger = pytorch_utils.StatsLogger()
-
     if torch.cuda.is_available():
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
-        #test_image, test_segmap = loader[0]
-        #test_image = torch.from_numpy(test_image)
-        #test_segmap = torch.from_numpy(test_segmap)
-        #test_image = Variable(test_image.unsqueeze(0).cuda(0))
-    #else:
-    #    test_image, test_segmap = loader[0]
-    #    test_image = Variable(test_image.unsqueeze(0))
 
     # ---------------------------
     # TRAINING ------------------
@@ -138,53 +115,29 @@ def train(config_file, load_weights=False):
             # gradient update
             optimizer.step()
 
-            # log the loss
-            #logger.log('train', i, 'crossentropy2d loss', loss.data[0])
-
             # accumulate loss to print per epoch
             current_epoch_loss += loss.data[0]
 
             # plot on screen
-            vis.line(
-                X=torch.ones((1, 1)).cpu() * i,
-                Y=torch.Tensor([loss.data[0]]).unsqueeze(0).cpu(),
-                win=loss_window,
-                update='append')
+            plotter.plot('training-minibatch', 'loss', i, loss.data[0])
             
             # print loss every 20 iterations
             if (i+1) % 200 == 0:
                 percentage = i / (loader.n_training_samples / int(config['training']['batch-size']))
                 print("Epoch [%d/%d] - Progress: %.4f - Loss: %.4f" % (epoch+1, n_epochs, percentage, loss.data[0]))
 
-        # test_output = model(test_image)
-        # predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
-        # target = loader.decode_segmap(test_segmap.numpy())
-
-        # vis.image(test_image[0].cpu().data.numpy(), opts=dict(title='Input' + str(epoch)))
-        # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
-        # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
+        # Compute the mean epoch loss
+        current_epoch_loss = current_epoch_loss / epoch_size
 
         # switch to the validation set
         loader.split = 'validation'
         # Run validation
         mean_val_loss, mean_val_jaccard_index = validate(loader, model, config)
-        print(mean_val_loss)
-        print(mean_val_jaccard_index)
 
-        # Plot training loss per epoch
-        vis.line(
-            X=torch.ones((2,1)).cpu() * epoch,
-            Y=torch.Tensor([current_epoch_loss / epoch_size, mean_val_loss]),
-            win=epoch_plot,
-            update='append')
-
-        # Plot validation loss per epoch
-        vis.line(
-            X=torch.ones((1,1)).cpu() * epoch,
-            Y=torch.Tensor([mean_val_jaccard_index]).unsqueeze(0).cpu(),
-            win=validation_plot,
-            update='append')
-
+        # plot values
+        plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
+        plotter.plot('loss', 'validation', epoch+1, mean_val_loss)
+        plotter.plot('jaccard', 'validation', epoch+1, mean_val_jaccard_index)
 
         # restart current_epoch_loss
         current_epoch_loss = 0.0
@@ -202,8 +155,6 @@ def validate(loader, model, config):
     model.eval()
     # initialize the validation loader
     validation_loader = data.DataLoader(loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=False)
-    # and the confusion matrix
-    conf_matrix = pytorch_utils.ConfusionMatrix(int(config['architecture']['num-classes']))
 
     mean_jaccard_index = 0.0
     mean_loss = 0.0
