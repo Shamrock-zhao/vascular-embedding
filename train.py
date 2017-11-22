@@ -119,7 +119,7 @@ def train(config_file, load_weights=False):
             current_epoch_loss += loss.data[0]
 
             # plot on screen
-            plotter.plot('training-minibatch', 'loss', i, loss.data[0])
+            plotter.plot('minibatch loss', str(epoch+1), i, loss.data[0])
             
             # print loss every 20 iterations
             if (i+1) % 200 == 0:
