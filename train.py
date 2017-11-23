@@ -42,20 +42,18 @@ def train(config_file, load_weights=False):
     if not path.exists(dir_checkpoints):
         makedirs(dir_checkpoints)
 
-    # get type of patch sampling and color preprocessing
-    type_of_sampling = 'patches_' + config['experiment']['sampling-strategy']
-    type_of_patch = type_of_sampling + '_' + config['experiment']['image-preprocessing']
-    # and prepare image and labels path
-    img_path = path.join(data_path, 'training', type_of_patch)
-    labels_path = path.join(data_path, 'training', type_of_sampling + '_labels')
-
-    # setup data loader
+    # setup data loader for training and validation
     data_loader = get_loader('vessel')
-    loader = data_loader(img_path, labels_path, 'training', 
-                        float(config['training']['validation-ratio']), 
+    t_loader = data_loader(data_path, 'training', 
+                        config['experiment']['sampling-strategy'],
+                        config['experiment']['image-preprocessing'], 
                         parse_boolean(config['training']['augmented']))
-    n_classes = loader.n_classes
-    train_loader = data.DataLoader(loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+    train_loader = data.DataLoader(t_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+    v_loader = data_loader(data_path, 'validation', 
+                        config['experiment']['sampling-strategy'],
+                        config['experiment']['image-preprocessing'], 
+                        parse_boolean(config['training']['augmented']))
+    val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
 
     # setup visdom for visualization
     vis = visdom.Visdom()
@@ -85,7 +83,7 @@ def train(config_file, load_weights=False):
     # TRAINING ------------------
     # ---------------------------
     n_epochs = int(config['training']['epochs'])
-    epoch_size = len(loader) // int(config['training']['batch-size'])
+    epoch_size = len(t_loader) // int(config['training']['batch-size'])
     current_epoch_loss = 0.0
 
     for epoch in range(0, n_epochs):
@@ -123,16 +121,14 @@ def train(config_file, load_weights=False):
             
             # print loss every 20 iterations
             if (i+1) % 200 == 0:
-                percentage = i / (loader.n_training_samples / int(config['training']['batch-size']))
+                percentage = i / (len(t_loader) / int(config['training']['batch-size']))
                 print("Epoch [%d/%d] - Progress: %.4f - Loss: %.4f" % (epoch+1, n_epochs, percentage, loss.data[0]))
 
         # Compute the mean epoch loss
         current_epoch_loss = current_epoch_loss / epoch_size
 
-        # switch to the validation set
-        loader.split = 'validation'
         # Run validation
-        mean_val_loss, mean_val_dice = validate(loader, model, config)
+        mean_val_loss, mean_val_dice = validate(v_loader, val_loader, model, config)
 
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
@@ -141,20 +137,16 @@ def train(config_file, load_weights=False):
 
         # restart current_epoch_loss
         current_epoch_loss = 0.0
-        # switch back to training
-        loader.split = 'training'
 
         # save current checkpoint
         torch.save(model, path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
 
 
 
-def validate(loader, model, config):
+def validate(loader, validation_loader, model, config):
     
     # set model for evaluation
     model.eval()
-    # initialize the validation loader
-    validation_loader = data.DataLoader(loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=False)
 
     mean_val_dice = 0.0
     mean_loss = 0.0

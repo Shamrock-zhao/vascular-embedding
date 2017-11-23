@@ -13,43 +13,33 @@ from scipy import misc
 
 class VesselPatchLoader(data.Dataset):
     
-    def __init__(self, img_path, labels_path, split, validation_ratio=0.05, is_transform=False):
+    def __init__(self, data_folder, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False):
         
         random.seed(7)
 
-        # if data must be augmented
-        self.is_transform = is_transform
-        # as we will use this loader for segmentation, n_classes = 2
-        self.n_classes = 2
-        # assign split
-        self.split = split
+        # validate input parameters
+        assert split in ['training', 'validation', 'test'], "Unknown split."
+        assert sampling_strategy in ['uniform', 'guided-by-labels'], "Unsuported sampling strategy."
+        assert image_preprocessing in ['rgb', 'eq', 'clahe'], "Unsuported image preprocessing."
 
-        # paths where the data are saved
-        self.img_path = img_path
-        self.labels_path = labels_path
+        # class attributes
+        self.split = split     # type of split
+        self.is_transform = is_transform    # if data must be augmented
+        self.img_path = path.join(data_folder, split, 'patches_' + sampling_strategy + '_' + image_preprocessing)
+        self.labels_path = path.join(data_folder, split, 'patches_' + sampling_strategy + '_labels')
         
         # collect image ids (names without extension) and shuffle
         self.image_ids = (f[:-4] for f in listdir(self.img_path))
         self.image_ids = list(self.image_ids)
         random.shuffle(self.image_ids)
 
-        # training and validation ratios and number of training samples
-        self.training_ratio = 1 - validation_ratio
-        self.validation_ratio = validation_ratio
-        self.n_training_samples = round(len(self.image_ids) * self.training_ratio)
-
-        # split data into training and validation
-        self.files = collections.defaultdict(list)
-        self.files['training'] = self.image_ids[:self.n_training_samples]
-        self.files['validation'] = self.image_ids[self.n_training_samples:]
-
 
     def __len__(self):
-        return len(self.files[self.split])
+        return len(self.image_ids)
 
 
     def __getitem__(self, index):
-        img_name = self.files[self.split][index]
+        img_name = self.image_ids[index]
         img_fullname = path.join(self.img_path, img_name + '.png')
         lbl_fullname = path.join(self.labels_path, img_name + '.gif')
 
