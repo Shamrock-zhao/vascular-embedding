@@ -18,12 +18,20 @@ def extract_patches_from_datasets(patch_size=64, num_patches=200000, overwrite=F
 
     # For each database
     for i in range(0, len(datasets)):
+        # Process training data
         if overwrite or not path.exists(path.join('data', datasets[i], 'training', 'patches_guided-by-labels_labels')):
             print('Extracting patches from {} training set...'.format(datasets[i]))
             extract_random_patches_from_dataset(path.join('data', datasets[i], 'training'), 
                                                 patch_size=patch_size, num_patches=num_patches)
         else:
             print('{} training set precomputed.'.format(datasets[i]))
+        # Process validation data
+        if overwrite or not path.exists(path.join('data', datasets[i], 'validation', 'patches_guided-by-labels_labels')):
+            print('Extracting patches from {} validation set...'.format(datasets[i]))
+            extract_random_patches_from_dataset(path.join('data', datasets[i], 'validation'), 
+                                                patch_size=patch_size, num_patches=int(num_patches * 0.05))
+        else:
+            print('{} validation set precomputed.'.format(datasets[i]))
 
 
 
