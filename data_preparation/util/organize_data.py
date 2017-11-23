@@ -18,6 +18,11 @@ def organize_chasedb():
     TRAINING_GT_DATA_PATH = 'data/CHASEDB1/training/labels'
     TRAINING_GT2_DATA_PATH = 'data/CHASEDB1/training/labels2'
     TRAINING_FOV_MASKS_DATA_PATH = 'data/CHASEDB1/training/masks'
+    # Validation data paths		
+    VALIDATION_IMAGES_DATA_PATH = 'data/CHASEDB1/validation/images'		
+    VALIDATION_GT_DATA_PATH = 'data/CHASEDB1/validation/labels'		
+    VALIDATION_GT2_DATA_PATH = 'data/CHASEDB1/validation/labels2'		
+    VALIDATION_FOV_MASKS_DATA_PATH = 'data/CHASEDB1/validation/masks'
     # Test data paths
     TEST_IMAGES_DATA_PATH = 'data/CHASEDB1/test/images/'
     TEST_GT_DATA_PATH = 'data/CHASEDB1/test/labels/'
@@ -61,32 +66,40 @@ def organize_chasedb():
     image_filenames = sorted(glob('tmp/CHASEDB1/*.jpg'), key=natural_key)
     # 2. Copy the first 20 images as test set
     copy_images('tmp/CHASEDB1', image_filenames[:20], TEST_IMAGES_DATA_PATH)
-    # 3. Copy the las 8 images as training set
-    copy_images('tmp/CHASEDB1', image_filenames[20:], TRAINING_IMAGES_DATA_PATH)
+    # 3. Copy the last 2 images as validation set
+    copy_images('tmp/CHASEDB1', image_filenames[-2:], VALIDATION_IMAGES_DATA_PATH)
+    # 4. Copy the images from 20 to 26 as training set
+    copy_images('tmp/CHASEDB1', image_filenames[20:26], TRAINING_IMAGES_DATA_PATH)
 
     # Move first observer labels
     # 1. Get labels filenames (first observer)
     labels_filenames = sorted(glob('tmp/CHASEDB1/*1stHO.png'), key=natural_key)
     # 2. Copy the first 20 images as test set
     copy_labels('tmp/CHASEDB1', labels_filenames[:20], TEST_GT_DATA_PATH)
-    # 3. Copy the last 8 images as training set
-    copy_labels('tmp/CHASEDB1', labels_filenames[20:], TRAINING_GT_DATA_PATH)
+    # 3. Copy the last 2 images as validation set
+    copy_labels('tmp/CHASEDB1', labels_filenames[-2:], VALIDATION_GT_DATA_PATH)
+    # 4. Copy the images from 20 to 26 as training set
+    copy_labels('tmp/CHASEDB1', labels_filenames[20:26], TRAINING_GT_DATA_PATH)
 
     # Move second observer labels
     # 1. Get labels filenames (first observer)
     labels2_filenames = sorted(glob('tmp/CHASEDB1/*2ndHO.png'), key=natural_key)
     # 2. Copy the first 20 images as test set
     copy_labels('tmp/CHASEDB1', labels2_filenames[:20], TEST_GT2_DATA_PATH)
-    # 3. Copy the last 8 images as training set
-    copy_labels('tmp/CHASEDB1', labels2_filenames[20:], TRAINING_GT2_DATA_PATH)
+    # 3. Copy the last 2 images as validation set
+    copy_labels('tmp/CHASEDB1', labels2_filenames[-2:], VALIDATION_GT2_DATA_PATH)
+    # 4. Copy the images from 20 to 26 as training set
+    copy_labels('tmp/CHASEDB1', labels2_filenames[20:26], TRAINING_GT2_DATA_PATH)
 
     # Move FOV masks
     # 1. Get labels filenames (first observer)
     fov_filenames = sorted(glob('tmp/CHASEDB1/*_fov_mask.png'), key=natural_key)
     # 2. Copy the first 20 images as test set
     copy_labels('tmp/CHASEDB1', fov_filenames[:20], TEST_FOV_MASKS_DATA_PATH)
-    # 3. Copy the last 8 images as training set
-    copy_labels('tmp/CHASEDB1', fov_filenames[20:], TRAINING_FOV_MASKS_DATA_PATH)
+    # 3. Copy the last 2 images as validation set
+    copy_labels('tmp/CHASEDB1', fov_filenames[-2:], VALIDATION_FOV_MASKS_DATA_PATH)
+    # 4. Copy the images from 20 to 26 as training set
+    copy_labels('tmp/CHASEDB1', fov_filenames[20:26], TRAINING_FOV_MASKS_DATA_PATH)
 
     # Remove useless folders
     rmtree('tmp/CHASEDB1/')
@@ -119,6 +132,21 @@ def organize_drive():
     rename('tmp/DRIVE/test/2nd_manual', 'tmp/DRIVE/test/labels2')
     rename('tmp/DRIVE/test/mask', 'tmp/DRIVE/test/masks')
 
+    # Move images to the validation set
+    makedirs('tmp/DRIVE/validation/images')
+    image_filenames = sorted(listdir('tmp/DRIVE/training/images'), key=natural_key)
+    move_files(image_filenames[-5:], 'tmp/DRIVE/training/images', 'tmp/DRIVE/validation/images')
+
+    # Move labels to the validation set
+    makedirs('tmp/DRIVE/validation/labels')
+    image_filenames = sorted(listdir('tmp/DRIVE/training/labels'), key=natural_key)
+    move_files(image_filenames[-5:], 'tmp/DRIVE/training/labels', 'tmp/DRIVE/validation/labels')
+
+    # Move masks to the validation set
+    makedirs('tmp/DRIVE/validation/masks')
+    image_filenames = sorted(listdir('tmp/DRIVE/training/masks'), key=natural_key)
+    move_files(image_filenames[-5:], 'tmp/DRIVE/training/masks', 'tmp/DRIVE/validation/masks')
+
     # Done! Now move the folder
     move('tmp/DRIVE', 'data/DRIVE')    
     print('DRIVE data set ready!')    
@@ -144,6 +172,10 @@ def organize_hrf():
     TRAINING_IMAGES_DATA_PATH = 'data/HRF/training/images'
     TRAINING_GT_DATA_PATH = 'data/HRF/training/labels'
     TRAINING_FOV_MASKS_DATA_PATH = 'data/HRF/training/masks'
+    # Validation data paths		
+    VALIDATION_IMAGES_DATA_PATH = 'data/HRF/validation/images'		
+    VALIDATION_GT_DATA_PATH = 'data/HRF/validation/labels'		
+    VALIDATION_FOV_MASKS_DATA_PATH = 'data/HRF/validation/masks'
     # Test data paths
     TEST_IMAGES_DATA_PATH = 'data/HRF/test/images/'
     TEST_GT_DATA_PATH = 'data/HRF/test/labels/'
@@ -191,8 +223,10 @@ def organize_hrf():
     # 1. Get image names
     image_filenames = sorted(listdir('tmp/HRF/images'), key=natural_key)
     # 2. Copy training images
-    copy_images('tmp/HRF/images', image_filenames[:15], TRAINING_IMAGES_DATA_PATH)
-    # 3. Copy test images
+    copy_images('tmp/HRF/images', image_filenames[:12], TRAINING_IMAGES_DATA_PATH)
+    # 3. Copy validation images
+    copy_images('tmp/HRF/images', image_filenames[12:15], VALIDATION_IMAGES_DATA_PATH)
+    # 4. Copy test images
     copy_images('tmp/HRF/images', image_filenames[-30:], TEST_IMAGES_DATA_PATH)
 
     # Copy training/validation/test labels 
@@ -200,17 +234,21 @@ def organize_hrf():
     # 1. Get labels names
     gt_filenames = sorted(listdir('tmp/HRF/labels'), key=natural_key)
     # 2. Copy training labels
-    copy_labels('tmp/HRF/labels', gt_filenames[:15], TRAINING_GT_DATA_PATH)
-    # 3. Copy test labels
+    copy_labels('tmp/HRF/labels', gt_filenames[:12], TRAINING_GT_DATA_PATH)
+    # 3. Copy validation labels
+    copy_labels('tmp/HRF/labels', gt_filenames[12:15], VALIDATION_GT_DATA_PATH)
+    # 4. Copy test labels
     copy_labels('tmp/HRF/labels', gt_filenames[-30:], TEST_GT_DATA_PATH)
 
     # Copy training/validation/test FOV masks 
     print('Copying FOV masks...')
-    # 1. Get labels names
+    # 1. Get masks names
     fov_filenames = sorted(glob('tmp/HRF/masks/*_fov_mask.png'), key=natural_key)
     # 2. Copy training labels
-    copy_labels('tmp/HRF/masks', fov_filenames[:15], TRAINING_FOV_MASKS_DATA_PATH)
-    # 3. Copy test labels
+    copy_labels('tmp/HRF/masks', fov_filenames[:12], TRAINING_FOV_MASKS_DATA_PATH)
+    # 3. Copy validation labels
+    copy_labels('tmp/HRF/masks', fov_filenames[12:15], VALIDATION_FOV_MASKS_DATA_PATH)
+    # 4. Copy test labels
     copy_labels('tmp/HRF/masks', fov_filenames[-30:], TEST_FOV_MASKS_DATA_PATH)
 
 
@@ -294,6 +332,11 @@ def organize_stare():
     TRAINING_GT_DATA_PATH = 'data/STARE/training/labels'
     TRAINING_GT2_DATA_PATH = 'data/STARE/training/labels2'
     TRAINING_FOV_MASKS_DATA_PATH = 'data/STARE/training/masks'
+    # Validation data paths		
+    VALIDATION_IMAGES_DATA_PATH = 'data/STARE/validation/images'		
+    VALIDATION_GT_DATA_PATH = 'data/STARE/validation/labels'		
+    VALIDATION_GT2_DATA_PATH = 'data/STARE/validation/labels2'		
+    VALIDATION_FOV_MASKS_DATA_PATH = 'data/STARE/validation/masks'
     # Test data paths
     TEST_IMAGES_DATA_PATH = 'data/STARE/test/images/'
     TEST_GT_DATA_PATH = 'data/STARE/test/labels/'
@@ -336,8 +379,10 @@ def organize_stare():
     # 1. Get image names
     image_filenames = sorted(listdir('tmp/STARE/images'), key=natural_key)
     # 2. Copy training images
-    ungz_files('tmp/STARE/images', image_filenames[:10], TRAINING_IMAGES_DATA_PATH)
-    # 3. Copy test images
+    ungz_files('tmp/STARE/images', image_filenames[:7], TRAINING_IMAGES_DATA_PATH)
+    # 3. Copy validation images
+    ungz_files('tmp/STARE/images', image_filenames[7:10], VALIDATION_IMAGES_DATA_PATH)
+    # 4. Copy test images
     ungz_files('tmp/STARE/images', image_filenames[-10:], TEST_IMAGES_DATA_PATH)
 
     # Copy training/validation/test labels
@@ -345,8 +390,10 @@ def organize_stare():
     # 1. Get image names
     gt_filenames = sorted(listdir('tmp/STARE/labels'), key=natural_key)
     # 2. Copy training labels
-    ungz_files('tmp/STARE/labels', gt_filenames[:10], TRAINING_GT_DATA_PATH)
-    # 3. Copy test labels
+    ungz_files('tmp/STARE/labels', gt_filenames[:7], TRAINING_GT_DATA_PATH)
+    # 3. Copy validation labels
+    ungz_files('tmp/STARE/labels', gt_filenames[7:10], VALIDATION_GT_DATA_PATH)
+    # 4. Copy test labels
     ungz_files('tmp/STARE/labels', gt_filenames[-10:], TEST_GT_DATA_PATH)
 
     # Copy training/validation/test labels2
@@ -354,14 +401,17 @@ def organize_stare():
     # 1. Get image names
     gt_filenames = sorted(listdir('tmp/STARE/labels2'), key=natural_key)
     # 2. Copy training labels2
-    ungz_files('tmp/STARE/labels2', gt_filenames[:10], TRAINING_GT2_DATA_PATH)
+    ungz_files('tmp/STARE/labels2', gt_filenames[:7], TRAINING_GT2_DATA_PATH)
+    # 3. Copy validation labels2
+    ungz_files('tmp/STARE/labels2', gt_filenames[7:10], VALIDATION_GT2_DATA_PATH)
     # 4. Copy test labels2
     ungz_files('tmp/STARE/labels2', gt_filenames[-10:], TEST_GT2_DATA_PATH)
     
     # Copy the precomputed masks
     print('Moving precomputed masks...')
     fov_filenames = sorted(listdir('precomputed_data/STARE/masks'), key=natural_key)
-    copy_images('precomputed_data/STARE/masks', fov_filenames[:10], TRAINING_FOV_MASKS_DATA_PATH)
+    copy_images('precomputed_data/STARE/masks', fov_filenames[:7], TRAINING_FOV_MASKS_DATA_PATH)
+    copy_images('precomputed_data/STARE/masks', fov_filenames[7:10], VALIDATION_FOV_MASKS_DATA_PATH)
     copy_images('precomputed_data/STARE/masks', fov_filenames[-10:], TEST_FOV_MASKS_DATA_PATH)
 
     # Remove useless folders
