@@ -3,7 +3,7 @@ from skimage import io, color, measure, filters
 from scipy import ndimage, stats
 import numpy as np
 from os import path
-
+import cv2
 
 
 def get_fov_mask(image_rgb, threshold=0.01):
@@ -37,6 +37,19 @@ def get_fov_mask(image_rgb, threshold=0.01):
     mask = connected_components == largest_component_label
 
     return mask.astype(float)
+
+
+
+def clahe_enhancement(image):
+    '''
+    Perform CLAHE contrast enhancement on each color band
+    '''
+
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    for i in range(0, image.shape[2]):
+        image[:,:,i] = clahe.apply(image[:,:,i]) 
+
+    return image
 
 
 
@@ -129,3 +142,20 @@ def equalize_fundus_image_intensities(image_rgb, fov_mask):
         equalized_image[:, :, color_band] = intermediate
 
     return equalized_image.astype(np.uint8)
+
+
+def preprocess(image, fov_mask, preprocessing=None):
+    
+    if preprocessing == 'rgb':
+        preprocessed_image = image # RGB image
+
+    elif preprocessing == 'green':
+        preprocessed_image = image[:,:,1] # Green band
+
+    elif preprocessing == 'equalized':
+        preprocessed_image = equalize_fundus_image_intensities(np.copy(image), fov_mask) # RGB equalized
+
+    elif preprocessing == 'clahe':
+        preprocessed_image = clahe_enhancement(np.copy(image))
+
+    return preprocessed_image

@@ -8,34 +8,10 @@ from os import path, makedirs, listdir, rename
 from scipy import misc
 from shutil import rmtree
 from .files_processing import natural_key
-from .image_processing import equalize_fundus_image_intensities
+from .image_processing import preprocess
 from skimage import measure
 
 
-
-def preprocess(image, fov_mask, preprocessing=None):
-    
-    if preprocessing == 'rgb':
-        preprocessed_image = image # RGB image
-
-    elif preprocessing == 'green':
-        preprocessed_image = image[:,:,1] # Green band
-
-    elif preprocessing == 'equalized':
-        preprocessed_image = equalize_fundus_image_intensities(np.copy(image), fov_mask) # RGB equalized
-
-    elif preprocessing == 'clahe':
-        preprocessed_image = image
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-        for i in range(0, image.shape[2]):
-            preprocessed_image[:,:,i] = clahe.apply(image[:,:,i])    
-
-    '''
-    image_size = preprocessed_image.shape
-    for i in range(0, image_size[2]):
-        preprocessed_image[:,:,i] = np.multiply(preprocessed_image[:,:,i], fov_mask)
-    '''
-    return preprocessed_image
 
 
 

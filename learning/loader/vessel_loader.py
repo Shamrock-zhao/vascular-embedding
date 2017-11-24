@@ -8,6 +8,7 @@ import torch
 from os import listdir, path
 from torch.utils import data
 from scipy import misc
+from data_preparation.util.image_preprocessing import equalize_fundus_image_intensities, clahe_enhancement
 
 
 
@@ -44,7 +45,8 @@ class VesselPatchLoader(data.Dataset):
         lbl_fullname = path.join(self.labels_path, img_name + '.gif')
 
         img = misc.imread(img_fullname)
-        img = np.array(img, dtype=np.uint8)
+        img = np.asarray(img, dtype=np.float32)
+        img = (img - np.mean(img)) / np.std(img) # normalize by its own mean and standard deviation
 
         lbl = misc.imread(lbl_fullname)
         lbl = np.array(lbl, dtype=np.int32)[:,:,0] // 255
@@ -69,20 +71,52 @@ class VesselPatchLoader(data.Dataset):
 
 
 
-'''
-if __name__ == '__main__':
-    local_path = 'data/DRIVE/training/'
-    dst = camvidLoader(local_path, is_transform=True)
-    trainloader = data.DataLoader(dst, batch_size=4)
-    for i, data in enumerate(trainloader):
-        imgs, labels = data
-        if i == 0:
-            img = torchvision.utils.make_grid(imgs).numpy()
-            img = np.transpose(img, (1, 2, 0))
-            img = img[:, :, ::-1]
-            plt.imshow(img)
-            plt.show()
-            plt.imshow(dst.decode_segmap(labels.numpy()[i]))
-            plt.show()
+class FundusImageLoader(data.Dataset):
+    
+    def __init__(self, data_folder, split=None, image_preprocessing='rgb'):
+        
+        random.seed(7)
 
-'''
+        # validate input parameters
+        assert split in [None, 'test'], "Unknown split."
+        assert image_preprocessing in ['rgb', 'eq', 'clahe'], "Unsuported image preprocessing."
+
+        # class attributes
+        self.split = split     # type of split
+        self.image_preprocessing = image_preprocessing # type of preprocessing
+        
+        if split is None:
+            self.img_path = path.join(data_folder, 'images')
+            self.fov_mask_path = path.join(data_folder, 'masks')
+        else:
+            self.img_path = path.join(data_folder, split, 'images')
+            self.fov_mask_path = path.join(data_folder, split, 'masks')
+        
+        # collect image ids
+        self.image_ids = listdir(self.img_path)
+        self.image_ids = list(self.image_ids)
+        # collect fov masks ids
+        self.masks_ids = listdir(self.fov_mask_path)
+        self.masks_ids = list(self.masks_ids)
+
+
+    def __len__(self):
+        return len(self.image_ids)
+
+
+    def __getitem__(self, index):
+
+        img_fullname = path.join(self.img_path, self.image_ids[index])
+        mask_fullname = path.join(self.fov_mask_path, self.masks_ids[index])
+
+        img = misc.imread(img_fullname)
+        img = np.asarray(img, dtype=np.uint8)
+
+        fov_mask = misc.imread(mask_fullname)
+        fov_mask = np.array(fov_mask, dtype=np.int32)[:,:,0] // 255
+
+        img = preprocess(img, fov_mask, self.image_preprocessing)
+
+        img = torch.from_numpy(img).float()
+
+        return img
