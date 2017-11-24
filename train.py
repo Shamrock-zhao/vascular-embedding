@@ -3,6 +3,7 @@ import torch
 import visdom
 import argparse
 import numpy as np
+import warnings
 
 import torch
 import torch.nn as nn
@@ -13,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from os import path, makedirs
 from configparser import ConfigParser
+from ntpath import basename
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -34,7 +36,7 @@ def train(config_file, load_weights=False):
 
     # retrieve input data path and output path
     data_path = config['folders']['data-path']
-    output_path = path.join(config['folders']['output-path'], experiment_name)
+    output_path = path.join(config['folders']['output-path'], basename(config_file))
     if not path.exists(output_path):
         makedirs(output_path)
     # prepare folder for checkpoints
@@ -62,10 +64,19 @@ def train(config_file, load_weights=False):
 
     # setup model
     model = get_model(config['architecture']['architecture'], 
-                      int(config['architecture']['num-channels']),
-                      int(config['architecture']['num-classes']),
-                      parse_boolean(config['architecture']['batch-norm']),
-                      float(config['architecture']['dropout']))
+                        int(config['architecture']['num-channels']),
+                        int(config['architecture']['num-classes']),
+                        parse_boolean(config['architecture']['batch-norm']),
+                        float(config['architecture']['dropout']))
+    if torch.cuda.is_available():
+        model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
+    # load pretrained weights if possible
+    if load_weights:
+        checkpoints_filenames = sorted(glob(path.join(dir_checkpoints, '*.pkl')), key=natural_key)
+        if len(checkpoints_filenames) > 0:
+            model.load_state_dict(torch.load(checkpoints_filenames[-1]))
+        else:
+            warnings.warn('Unable to find pretrained models in {}. Starting from 0.'.format(dir_checkpoints))
 
     # initialize the optimizer
     if config['training']['optimizer']=='SGD':
@@ -76,8 +87,6 @@ def train(config_file, load_weights=False):
     else:
         raise "Optimizer {} not available".format(config['training']['optimizer'])
 
-    if torch.cuda.is_available():
-        model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
 
     # ---------------------------
     # TRAINING ------------------
@@ -139,7 +148,10 @@ def train(config_file, load_weights=False):
         current_epoch_loss = 0.0
 
         # save current checkpoint
-        torch.save(model, path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
+        torch.save(model.state_dict(), path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
+
+    # save the final model
+    torch.save(model, path.join(dir_checkpoints, "model.pkl"))
 
 
 

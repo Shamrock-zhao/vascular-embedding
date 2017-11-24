@@ -8,7 +8,7 @@ import torch
 from os import listdir, path
 from torch.utils import data
 from scipy import misc
-from data_preparation.util.image_preprocessing import equalize_fundus_image_intensities, clahe_enhancement
+
 
 
 
