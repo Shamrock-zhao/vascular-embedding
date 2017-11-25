@@ -62,7 +62,7 @@ def extract_random_patches_from_image(image, labels, fov_mask, coordinates, file
 
     # preprocess the images using different methods   
     rgb = preprocess(image, fov_mask, 'rgb')
-    equalized_image = preprocess(np.copy(image), fov_mask, 'equalized')
+    equalized_image = preprocess(np.copy(image), fov_mask, 'eq')
     clahe = preprocess(np.copy(image), fov_mask, 'clahe')
 
     # precompute pad

@@ -70,7 +70,7 @@ class unet(nn.Module):
                 
                 # get current patch
                 current_patch = image[i-pad:i+pad, j-pad:j+pad, :]
-                current_patch = (current_patch - np.mean(current_patch)) / np.std(current_patch) # normalize by its own mean and standard deviation
+                current_patch = (current_patch - np.mean(current_patch)) / (np.std(current_patch) + 0.00001) # normalize by its own mean and standard deviation
 
                 current_patch = torch.from_numpy(current_patch).float()
                 current_patch = torch.unsqueeze(current_patch, 0)

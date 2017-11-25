@@ -152,7 +152,7 @@ def preprocess(image, fov_mask, preprocessing=None):
     elif preprocessing == 'green':
         preprocessed_image = image[:,:,1] # Green band
 
-    elif preprocessing == 'equalized':
+    elif preprocessing == 'eq':
         preprocessed_image = equalize_fundus_image_intensities(np.copy(image), fov_mask) # RGB equalized
 
     elif preprocessing == 'clahe':

@@ -12,12 +12,15 @@ import torchvision.models as models
 
 import matplotlib.pyplot as plt
 
-from os import path, makedirs
+from os import path, makedirs, listdir
 from configparser import ConfigParser
 from ntpath import basename
+from scipy import misc
 
 from torch.autograd import Variable
 from torch.utils import data
+
+from data_preparation.util.image_processing import preprocess
 
 from learning.models import get_model
 from learning.loader import get_loader
@@ -57,10 +60,19 @@ def train(config_file, load_weights=False):
                         parse_boolean(config['training']['augmented']))
     val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
 
+    # open a validation image to show its progress during training
+    val_image_name = listdir(path.join(data_path, 'validation', 'images'))[0]
+    val_image_mask = listdir(path.join(data_path, 'validation', 'masks'))[0]
+    validation_image = np.asarray(misc.imread(path.join(data_path, 'validation', 'images', val_image_name)), dtype=np.uint8)
+    validation_fov = np.asarray(misc.imread(path.join(data_path, 'validation', 'masks', val_image_mask)), dtype=np.uint8) // 255
+    # preprocess the image according to the model
+    validation_image = preprocess(validation_image, validation_fov, config['experiment']['image-preprocessing'])   
+
     # setup visdom for visualization
     vis = visdom.Visdom()
     # losses per epoch
-    plotter = VisdomLinePlotter(env_name=config['experiment']['name'])
+    plotter = VisdomLinePlotter(env_name=config['experiment']['name'],
+                                val_image_name=val_image_name)
 
     # setup model
     model = get_model(config['architecture']['architecture'], 
@@ -97,6 +109,8 @@ def train(config_file, load_weights=False):
 
     for epoch in range(0, n_epochs):
         
+        model.train()
+
         # for each batch
         for i, (images, labels) in enumerate(train_loader):
             
@@ -139,10 +153,14 @@ def train(config_file, load_weights=False):
         # Run validation
         mean_val_loss, mean_val_dice = validate(v_loader, val_loader, model, config)
 
+        # evaluate the validation image on the current model
+        validation_image_scores, _ = model.module.predict_from_full_image(validation_image)
+
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
         plotter.plot('loss', 'validation', epoch+1, mean_val_loss)
         plotter.plot('dice', 'validation', epoch+1, mean_val_dice)
+        plotter.display_image(validation_image_scores, epoch)
 
         # restart current_epoch_loss
         current_epoch_loss = 0.0
