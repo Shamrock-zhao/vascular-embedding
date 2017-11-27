@@ -1,8 +1,10 @@
 
 import numpy as np
+import math
 
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from torch.autograd import Variable
 from learning.models.utils import *
@@ -60,20 +62,25 @@ class unet(nn.Module):
         
         # initialize the pad
         pad = int(self.patch_size/2)
+
+        
+        size_x = math.ceil(image.shape[0] / self.patch_size) * self.patch_size
+        size_y = math.ceil(image.shape[1] / self.patch_size) * self.patch_size
         
         # initialize matrices for the segmentations and the padded image
-        segmentation_scores = np.zeros((image.shape[0] + 2*pad, image.shape[1] + 2*pad), dtype=np.float32)
+        segmentation_scores = np.zeros((size_x, size_y), dtype=np.float32)
         segmentation = np.zeros(segmentation_scores.shape, dtype=np.float32)
-        padded_image = np.zeros((image.shape[0] + 2*pad, image.shape[1] + 2*pad, 3), dtype=np.float32)
+        unary_potentials = np.zeros((size_x, size_y, 2), dtype=np.float32)
+        padded_image = np.zeros((size_x, size_y, 3), dtype=np.uint8)
         # pad the image
-        padded_image[pad:image.shape[0]+pad, pad:image.shape[1]+pad, :] = image
+        padded_image[0:image.shape[0], 0:image.shape[1], :] = image
 
         # loop for every patch in the image    
-        for i in range(pad, padded_image.shape[0] - pad, self.patch_size):
-            for j in range(pad, padded_image.shape[1] - pad, self.patch_size):
+        for i in range(pad, padded_image.shape[0] + pad, self.patch_size):
+            for j in range(pad, padded_image.shape[1] + pad, self.patch_size):
                 
                 # get current patch
-                current_patch = padded_image[i-pad:i+pad, j-pad:j+pad, :]
+                current_patch = np.asarray(padded_image[i-pad:i+pad, j-pad:j+pad, :], dtype=np.float32)
                 current_patch = (current_patch - np.mean(current_patch)) / (np.std(current_patch) + 0.00001) # normalize by its own mean and standard deviation
 
                 current_patch = torch.from_numpy(current_patch).float()
@@ -92,8 +99,11 @@ class unet(nn.Module):
                 m = nn.Softmax2d()
                 segmentation_scores[i-pad:i+pad, j-pad:j+pad] = m(scores).data[0][1].cpu().numpy()
 
-        # unpad the segmentations
-        segmentation_scores = segmentation_scores[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
-        segmentation = segmentation[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
+                unary_potentials[i-pad:i+pad, j-pad:j+pad, :] = m(scores).data[0].permute(1,2,0).cpu().numpy()
 
-        return segmentation_scores, segmentation
+        # unpad the segmentations
+        segmentation_scores = segmentation_scores[0:image.shape[0], 0:image.shape[1]]
+        segmentation = segmentation[0:image.shape[0], 0:image.shape[1]]
+        unary_potentials = unary_potentials[0:image.shape[0], 0:image.shape[1], :]
+
+        return segmentation_scores, segmentation, unary_potentials

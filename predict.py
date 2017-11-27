@@ -2,6 +2,8 @@
 import torch
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 from os import makedirs, listdir, path
 from scipy import misc
 from data_preparation.util.image_processing import preprocess
@@ -42,11 +44,12 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
         img = np.asarray(misc.imread(path.join(image_path, current_img_filename)), dtype=np.uint8)
         fov_mask = np.asarray(misc.imread(path.join(fov_path, current_fov_filename)), dtype=np.int32) // 255
         # preprocess the image according to the model
-        img = preprocess(img, fov_mask, image_preprocessing)        
+        img = preprocess(img, fov_mask, image_preprocessing)  
+
         # predict the scores
-        scores, segmentation = model.module.predict_from_full_image(img)
-        scores = np.multiply(scores, fov_mask > 0)
-        segmentation = np.multiply(segmentation, fov_mask > 0)
+        scores, segmentation, _ = model.module.predict_from_full_image(img)
+        #scores = np.multiply(scores, fov_mask > 0)
+        #segmentation = np.multiply(segmentation, fov_mask > 0)
         # save both files
         misc.imsave(path.join(scores_path, current_img_filename[:-3] + 'png'), scores)
         misc.imsave(path.join(segmentations_path, current_img_filename[:-3] + 'png'), segmentation)
