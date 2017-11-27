@@ -70,7 +70,7 @@ class unet(nn.Module):
         # initialize matrices for the segmentations and the padded image
         segmentation_scores = np.zeros((size_x, size_y), dtype=np.float32)
         segmentation = np.zeros(segmentation_scores.shape, dtype=np.float32)
-        unary_potentials = np.zeros((size_x, size_y, 2), dtype=np.float32)
+        unary_potentials = np.zeros((2, size_x, size_y), dtype=np.float32)
         padded_image = np.zeros((size_x, size_y, 3), dtype=np.uint8)
         # pad the image
         padded_image[0:image.shape[0], 0:image.shape[1], :] = image
@@ -99,11 +99,11 @@ class unet(nn.Module):
                 m = nn.Softmax2d()
                 segmentation_scores[i-pad:i+pad, j-pad:j+pad] = m(scores).data[0][1].cpu().numpy()
 
-                unary_potentials[i-pad:i+pad, j-pad:j+pad, :] = m(scores).data[0].permute(1,2,0).cpu().numpy()
+                unary_potentials[:,i-pad:i+pad, j-pad:j+pad] = m(scores).data[0].cpu().numpy()
 
         # unpad the segmentations
         segmentation_scores = segmentation_scores[0:image.shape[0], 0:image.shape[1]]
         segmentation = segmentation[0:image.shape[0], 0:image.shape[1]]
-        unary_potentials = unary_potentials[0:image.shape[0], 0:image.shape[1], :]
+        unary_potentials = unary_potentials[:,0:image.shape[0], 0:image.shape[1]]
 
         return segmentation_scores, segmentation, unary_potentials

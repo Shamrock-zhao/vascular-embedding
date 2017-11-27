@@ -30,6 +30,7 @@ from learning.loader import get_loader
 from learning.loss import cross_entropy2d
 from learning.metrics import dice_index
 from learning.plots import VisdomLinePlotter
+from predict import crf_refinement
 
 
 
@@ -94,8 +95,10 @@ def train(config_file, load_weights=False):
             first_epoch = int(((checkpoint_name.split('_'))[-1].split('.'))[0]) + 1
             
             # evaluate the validation image on the current model
-            validation_image_scores, _, _ = model.module.predict_from_full_image(validation_image)
-            plotter.display_image(validation_image_scores, first_epoch)
+            validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
+            validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
+            plotter.display_scores(validation_image_scores, first_epoch)
+            plotter.display_segmentation(validation_image_segmentation, first_epoch)
         else:
             warnings.warn('Unable to find pretrained models in {}. Starting from 0.'.format(dir_checkpoints))
             first_epoch = 0
@@ -166,13 +169,14 @@ def train(config_file, load_weights=False):
         mean_val_loss, mean_val_dice = validate(v_loader, val_loader, model, config)
 
         # evaluate the validation image on the current model
-        validation_image_scores, _, _ = model.module.predict_from_full_image(validation_image)
+        validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
 
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
         plotter.plot('loss', 'validation', epoch+1, mean_val_loss)
         plotter.plot('dice', 'validation', epoch+1, mean_val_dice)
-        plotter.display_image(validation_image_scores, epoch)
+        plotter.display_scores(validation_image_scores, epoch)
+        plotter.display_segmentation(validation_image_segmentation, epoch)
 
         # restart current_epoch_loss
         current_epoch_loss = 0.0
