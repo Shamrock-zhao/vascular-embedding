@@ -73,9 +73,6 @@ def crf_refinement(unary_potentials, image, n_labels=2):
 
     # set unary potentials
     d.setUnaryEnergy(U)
-    # this adds the color-independent term, features are the locations only.
-    d.addPairwiseGaussian(sxy=(3, 3), compat=3, kernel=dcrf.DIAG_KERNEL,
-                          normalization=dcrf.NORMALIZE_SYMMETRIC)
     # This adds the color-dependent term, i.e. features are (x,y,r,g,b).
     d.addPairwiseBilateral(sxy=(80, 80), srgb=(0.01, 0.01, 0.01), rgbim=image,
                            compat=10000,
