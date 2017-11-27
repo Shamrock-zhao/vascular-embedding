@@ -4,6 +4,7 @@ import visdom
 import argparse
 import numpy as np
 import warnings
+import ntpath
 
 import torch
 import torch.nn as nn
@@ -16,11 +17,13 @@ from os import path, makedirs, listdir
 from configparser import ConfigParser
 from ntpath import basename
 from scipy import misc
+from glob import glob
 
 from torch.autograd import Variable
 from torch.utils import data
 
 from data_preparation.util.image_processing import preprocess
+from data_preparation.util.files_processing import natural_key
 
 from learning.models import get_model
 from learning.loader import get_loader
@@ -87,8 +90,13 @@ def train(config_file, load_weights=False):
         checkpoints_filenames = sorted(glob(path.join(dir_checkpoints, '*.pkl')), key=natural_key)
         if len(checkpoints_filenames) > 0:
             model.load_state_dict(torch.load(checkpoints_filenames[-1]))
+            checkpoint_name = ntpath.basename(checkpoints_filenames[-1])
+            first_epoch = int(((checkpoint_name.split('_'))[-1].split('.'))[0])
         else:
             warnings.warn('Unable to find pretrained models in {}. Starting from 0.'.format(dir_checkpoints))
+            first_epoch = 0
+    else:
+        first_epoch = 0
 
     # initialize the optimizer
     if config['training']['optimizer']=='SGD':
@@ -107,7 +115,7 @@ def train(config_file, load_weights=False):
     epoch_size = len(t_loader) // int(config['training']['batch-size'])
     current_epoch_loss = 0.0
 
-    for epoch in range(0, n_epochs):
+    for epoch in range(first_epoch, n_epochs):
         
         model.train()
 
@@ -140,7 +148,7 @@ def train(config_file, load_weights=False):
             current_epoch_loss += loss.data[0]
 
             # plot on screen
-            plotter.plot('minibatch loss', str(epoch+1), i, loss.data[0])
+            plotter.plot('minibatch loss', str(epoch+1), i, loss.data[0], 'minibatch')
             
             # print loss every 20 iterations
             if (i+1) % 200 == 0:
