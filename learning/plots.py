@@ -12,12 +12,12 @@ class VisdomLinePlotter(object):
         self.validation_image_name = val_image_name
         self.image_window = False
 
-    def plot(self, var_name, split_name, x, y):
+    def plot(self, var_name, split_name, x, y, x_label='Epochs'):
         if var_name not in self.plots:
             self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
                 legend=[split_name],
                 title=var_name,
-                xlabel='Epochs',
+                xlabel=x_label,
                 ylabel=var_name
             ))
         else:
