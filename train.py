@@ -91,7 +91,7 @@ def train(config_file, load_weights=False):
         if len(checkpoints_filenames) > 0:
             model.load_state_dict(torch.load(checkpoints_filenames[-1]))
             checkpoint_name = ntpath.basename(checkpoints_filenames[-1])
-            first_epoch = int(((checkpoint_name.split('_'))[-1].split('.'))[0])
+            first_epoch = int(((checkpoint_name.split('_'))[-1].split('.'))[0]) + 1
         else:
             warnings.warn('Unable to find pretrained models in {}. Starting from 0.'.format(dir_checkpoints))
             first_epoch = 0

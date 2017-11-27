@@ -58,18 +58,22 @@ class unet(nn.Module):
 
     def predict_from_full_image(self, image):
         
-        # initialize an empty segmentation
-        segmentation_scores = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
-        segmentation = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
         # initialize the pad
         pad = int(self.patch_size/2)
+        
+        # initialize matrices for the segmentations and the padded image
+        segmentation_scores = np.zeros((image.shape[0] + 2*pad, image.shape[1] + 2*pad), dtype=np.float32)
+        segmentation = np.zeros(segmentation_scores.shape, dtype=np.float32)
+        padded_image = np.zeros((image.shape[0] + 2*pad, image.shape[1] + 2*pad, 3), dtype=np.float32)
+        # pad the image
+        padded_image[pad:image.shape[0]+pad, pad:image.shape[1]+pad, :] = image
 
         # loop for every patch in the image    
-        for i in range(pad, image.shape[0] - pad, self.patch_size):
-            for j in range(pad, image.shape[1] - pad, self.patch_size):
+        for i in range(pad, padded_image.shape[0] - pad, self.patch_size):
+            for j in range(pad, padded_image.shape[1] - pad, self.patch_size):
                 
                 # get current patch
-                current_patch = image[i-pad:i+pad, j-pad:j+pad, :]
+                current_patch = padded_image[i-pad:i+pad, j-pad:j+pad, :]
                 current_patch = (current_patch - np.mean(current_patch)) / (np.std(current_patch) + 0.00001) # normalize by its own mean and standard deviation
 
                 current_patch = torch.from_numpy(current_patch).float()
@@ -87,5 +91,9 @@ class unet(nn.Module):
 
                 m = nn.Softmax2d()
                 segmentation_scores[i-pad:i+pad, j-pad:j+pad] = m(scores).data[0][1].cpu().numpy()
+
+        # unpad the segmentations
+        segmentation_scores = segmentation_scores[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
+        segmentation = segmentation[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
 
         return segmentation_scores, segmentation
