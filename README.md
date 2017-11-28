@@ -18,6 +18,10 @@ We tested our system in these combinations of architectures and operating system
     
     > ```git clone https://github.com/ignaciorlando/encoder-based-regularization.git```
 
+2. Move yourself in the terminal to ```./encoder-based-regularization```:
+
+    > ```cd encoder-based-regularization```
+
 ## Data preparation
 
 Use the code in ```./data_preparation``` to download and organize all the data sets, extract patches from all of them and organize them to run the experiments.
