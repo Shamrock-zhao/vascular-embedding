@@ -8,7 +8,9 @@ import pydensecrf.densecrf as dcrf
 from pydensecrf.utils import unary_from_softmax
 from os import makedirs, listdir, path
 from scipy import misc
+
 from data_preparation.util.image_processing import preprocess
+from data_preparation.util.files_processing import natural_key
 
 
 def predict(image_path, fov_path, output_path, model_filename, image_preprocessing='rgb', crf=True):
@@ -18,8 +20,8 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
     assert image_preprocessing in ['rgb', 'eq', 'clahe'], "Unsuported image preprocessing."
 
     # retrieve images and fov masks filenames
-    img_filenames = listdir(image_path)
-    fov_filenames = listdir(fov_path)
+    img_filenames = sorted(listdir(image_path), key=natural_key)
+    fov_filenames = sorted(listdir(fov_path), key=natural_key)
 
     # open the model
     model = torch.load(model_filename)
@@ -45,21 +47,31 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
         # open the image and the fov mask
         img = np.asarray(misc.imread(path.join(image_path, current_img_filename)), dtype=np.uint8)
         fov_mask = np.asarray(misc.imread(path.join(fov_path, current_fov_filename)), dtype=np.int32) // 255
-        # preprocess the image according to the model
-        img = preprocess(img, fov_mask, image_preprocessing)  
-
-        # predict the scores
-        scores, segmentation, unary_potentials = model.module.predict_from_full_image(img)
-        scores = np.multiply(scores, fov_mask > 0)
+        if len(fov_mask.shape) > 2:
+            fov_mask = fov_mask[:,:,0]
         
-        if crf:
-            segmentation = crf_refinement(unary_potentials, img)
-        else:
-            segmentation = np.multiply(segmentation, fov_mask > 0)
+        # segment the image
+        scores, segmentation, _ = segment_image(img, fov_mask, model, image_preprocessing, crf)
 
         # save both files
         misc.imsave(path.join(scores_path, current_img_filename[:-3] + 'png'), scores)
         misc.imsave(path.join(segmentations_path, current_img_filename[:-3] + 'png'), segmentation)
+
+
+
+def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True):
+    # preprocess the image according to the model
+    img = preprocess(img, fov_mask, image_preprocessing)  
+    # predict the scores
+    scores, segmentation, unary_potentials = model.module.predict_from_full_image(img)
+    scores = np.multiply(scores, fov_mask > 0)
+    # refine using the crf is necessary
+    if crf:
+        segmentation = crf_refinement(unary_potentials, img)
+    segmentation = np.multiply(segmentation, fov_mask > 0)
+
+    return scores, segmentation, unary_potentials
+
 
 
 def crf_refinement(unary_potentials, image, n_labels=2, sxy=(80, 80), srgb=(13, 13, 13), compat=10):
