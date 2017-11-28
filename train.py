@@ -1,5 +1,4 @@
 import sys
-import torch
 import visdom
 import argparse
 import numpy as np
