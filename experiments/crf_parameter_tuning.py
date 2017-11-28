@@ -9,6 +9,8 @@ from ast import literal_eval as make_tuple
 
 from learning.metrics import dice_index
 
+from data_preparation.util.files_processing import natural_key
+
 
 def crf_parameter_tuning(validation_data_path, model_filename, compat_vals, sxy_vals, srgb_vals, image_preprocessing='rgb'):
     '''
@@ -25,9 +27,9 @@ def crf_parameter_tuning(validation_data_path, model_filename, compat_vals, sxy_
     model.eval()
 
     # get filenames
-    images_filenames = listdir(images_folder)
-    fov_masks_filenames = listdir(fov_masks_folder)
-    labels_filenames = listdir(labels_folder)
+    images_filenames = sorted(listdir(images_folder), key=natural_key)
+    fov_masks_filenames = sorted(listdir(fov_masks_folder), key=natural_key)
+    labels_filenames = sorted(listdir(labels_folder), key=natural_key)
 
     # prepare arrays of values to explore
     compat = np.arange(compat_vals[0], compat_vals[1], compat_vals[2])
