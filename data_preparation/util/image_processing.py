@@ -146,6 +146,9 @@ def equalize_fundus_image_intensities(image_rgb, fov_mask):
 
 def preprocess(image, fov_mask, preprocessing=None):
     
+    if len(fov_mask.shape) > 2:
+        fov_mask = fov_mask[:,:,0]
+
     if preprocessing == 'rgb':
         preprocessed_image = image # RGB image
 
