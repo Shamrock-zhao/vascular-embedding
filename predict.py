@@ -62,20 +62,19 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
         misc.imsave(path.join(segmentations_path, current_img_filename[:-3] + 'png'), segmentation)
 
 
-def crf_refinement(unary_potentials, image, n_labels=2):
+def crf_refinement(unary_potentials, image, n_labels=2, sxy=(80, 80), srgb=(13, 13, 13), compat=10):
     
     # initialize the dense crf
     d = dcrf.DenseCRF2D(image.shape[1], image.shape[0], n_labels)
 
     # get negative log probabilities
-    #U = unary_from_softmax(unary_potentials)
     U = - (np.reshape(unary_potentials,(n_labels, image.shape[0] * image.shape[1])))
 
     # set unary potentials
     d.setUnaryEnergy(U)
     # This adds the color-dependent term, i.e. features are (x,y,r,g,b).
-    d.addPairwiseBilateral(sxy=(80, 80), srgb=(0.01, 0.01, 0.01), rgbim=image,
-                           compat=10000,
+    d.addPairwiseBilateral(sxy=sxy, srgb=srgb, rgbim=image,
+                           compat=compat,
                            kernel=dcrf.DIAG_KERNEL,
                            normalization=dcrf.NORMALIZE_SYMMETRIC)
     # Run five inference steps.

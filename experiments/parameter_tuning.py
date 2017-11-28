@@ -43,6 +43,15 @@ def exp_eval_image_preprocessing(config_files_path, default_config_file):
     preprocessing_strategies = ['rgb', 'eq', 'clahe']
 
     modify_and_write_config_file(config_files_path, default_config_file, experiment_name, to_modify, preprocessing_strategies)
+
+
+def exp_eval_dropout(config_files_path, default_config_file):
+    
+    experiment_name = 'exp_eval_dropout'
+    to_modify = ['architecture', 'dropout']
+    dropout_values = ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5']
+
+    modify_and_write_config_file(config_files_path, default_config_file, experiment_name, to_modify, dropout_values)    
     
 
 
@@ -62,7 +71,9 @@ if __name__ == '__main__':
     if args.parameter == 'image-preprocessing':
         exp_eval_image_preprocessing(args.path, args.default_config_file)
     elif args.parameter == 'sampling-strategy':
-        exp_eval_sampling_strategy(args.path, args.default_config_file)        
+        exp_eval_sampling_strategy(args.path, args.default_config_file)  
+    elif args.parameter == 'dropout':
+        exp_eval_dropout(args.path, args.default_config_file)        
     else:
         raise NameError('Unsuported parameter to tune')
 
