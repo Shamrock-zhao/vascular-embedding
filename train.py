@@ -170,6 +170,7 @@ def train(config_file, load_weights=False):
 
         # evaluate the validation image on the current model
         validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
+        validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
 
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
@@ -186,6 +187,8 @@ def train(config_file, load_weights=False):
 
     # save the final model
     torch.save(model, path.join(dir_checkpoints, "model.pkl"))
+    # return model name
+    return path.join(dir_checkpoints, "model.pkl")
 
 
 
@@ -254,4 +257,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # call the main function
-    train(args.config_file, parse_boolean(args.load))
+    return train(args.config_file, parse_boolean(args.load))
