@@ -40,14 +40,14 @@ def run_experiment(experiment_folder, validation_set_path, output_path, load_wei
             dataset_name = parser['folders']['data-path'].split('/')[-2]
 
         # create a folder with the dataset name
-        current_output_path = path.join(output_path, dataset_name)
+        current_output_path = path.join(output_path, dataset_name, parser['experiment']['name'])
         if not path.exists(current_output_path):
             makedirs(current_output_path)
 
         # train the model
         model_filename = train(config_filenames[i], load_weights)
         # evaluate on the validation set
-        predict(val_image_path, val_fov_mask_path, output_path, model_filename, 
+        predict(val_image_path, val_fov_mask_path, current_output_path, model_filename, 
                 parser['experiment']['image-preprocessing'], crf)
 
 
