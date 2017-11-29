@@ -256,4 +256,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # call the main function
-    return train(args.config_file, parse_boolean(args.load))
+    train(args.config_file, parse_boolean(args.load))
