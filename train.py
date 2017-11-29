@@ -134,10 +134,11 @@ def train(config_file, load_weights=False):
         model.train()
 
         # Assign this loss to the array of losses and update the average loss if possible
-        epoch_losses[i] = current_epoch_loss
         if (epoch - first_epoch) >= 5:
+            # the previous loss will be 
             previous_epoch_loss = np.mean(epoch_losses[i-5:i]) 
         else:
+            # to skip convergence
             previous_epoch_loss = current_epoch_loss * 100
 
         # for each batch
@@ -178,6 +179,7 @@ def train(config_file, load_weights=False):
 
         # Compute the mean epoch loss
         current_epoch_loss = current_epoch_loss / epoch_size
+        epoch_losses[i] = current_epoch_loss
 
         # Run validation
         mean_val_loss, mean_val_dice = validate(v_loader, val_loader, model, config)
@@ -195,6 +197,8 @@ def train(config_file, load_weights=False):
 
         # restart current_epoch_loss
         current_epoch_loss = 0.0
+        # update the iterator
+        i = i + 1
 
         # save current checkpoint
         torch.save(model.state_dict(), path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
