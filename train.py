@@ -119,11 +119,26 @@ def train(config_file, load_weights=False):
     # ---------------------------
     n_epochs = int(config['training']['epochs'])
     epoch_size = len(t_loader) // int(config['training']['batch-size'])
+    epsilon = float(config['training']['convergence-threshold'])
+    
     current_epoch_loss = 0.0
+    previous_epoch_loss = -1000.0
+    epoch_losses = np.zeros((n_epochs - first_epoch, 1), dtype=np.float32)
+    
+    epoch = first_epoch
 
-    for epoch in range(first_epoch, n_epochs):
+    # repeat while not converge
+    i = 0
+    while not converge(previous_epoch_loss, current_epoch_loss, epsilon) and epoch < n_epochs:
         
         model.train()
+
+        # Assign this loss to the array of losses and update the average loss if possible
+        epoch_losses[i] = current_epoch_loss
+        if (epoch - first_epoch) >= 5:
+            previous_epoch_loss = np.mean(epoch_losses[i-5:i]) 
+        else:
+            previous_epoch_loss = current_epoch_loss * 100
 
         # for each batch
         for i, (images, labels) in enumerate(train_loader):
@@ -240,6 +255,12 @@ def validate(loader, validation_loader, model, config):
 
 def parse_boolean(input_string):
     return input_string.upper()=='TRUE'
+
+
+
+def converge(previous_epoch_loss, current_epoch_loss, epsilon):
+    
+    return (abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss) < epsilon
 
 
 
