@@ -12,6 +12,8 @@ from scipy import misc
 from data_preparation.util.image_processing import preprocess
 from data_preparation.util.files_processing import natural_key
 
+from learning.metrics import dice_index
+
 
 def predict(image_path, fov_path, output_path, model_filename, image_preprocessing='rgb', crf=True):
     '''
@@ -94,6 +96,35 @@ def crf_refinement(unary_potentials, image, n_labels=2, sxy=(80, 80), srgb=(13, 
     # Find out the most probable class for each pixel.
     MAP = np.asarray(np.argmax(Q, axis=0).reshape(image.shape[0], image.shape[1]), dtype=np.float32);
     return MAP
+
+
+def evaluate_prediction(segmentation, ground_truth):
+    
+    return dice_index(ground_truth, segmentation)
+
+
+
+def evaluate_predictions(segmentation_path, ground_truth_path):
+    
+    # get filenames of segmentations and ground truth labellings
+    seg_filenames = sorted(listdir(segmentation_path), key=natural_key)
+    gt_filenames = sorted(listdir(ground_truth_path), key=natural_key)
+
+    # initialize an array of dice indices
+    dice_indices = np.zeros((len(seg_filenames), 1), dtype=np.float32)
+
+    # evaluate each image
+    for i in range(0, len(seg_filenames)):
+        
+        # open the image and the ground truth labelling
+        segmentation = misc.imread(path.join(segmentation_path, seg_filenames[i])) > 0
+        ground_truth = misc.imread(path.join(ground_truth_path, gt_filenames[i])) > 0
+        # evaluate
+        dice_indices[i] = evaluate_prediction(segmentation, ground_truth)
+
+    # return the mean dice and a dictionary with the performance for each image
+    return np.mean(dice_indices), dict(zip(seg_filenames, dice_indices))
+        
 
 
 import argparse

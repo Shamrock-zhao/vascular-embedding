@@ -17,7 +17,8 @@ def dice_index(gt, pred):
 
 def dice_indices(gts, preds):
     
-    jaccard_indices_ = []
+    dice_indices_ = []
     for i in range(0, preds.shape[0]):
-        dice_index.append(jaccard_index(np.squeeze(gt[i,:,:], axis=0), np.squeeze(preds[i,:,:], axis=0)))
+        dice_indices_.append(dice_index(np.squeeze(gt[i,:,:], axis=0), np.squeeze(preds[i,:,:], axis=0)))
+    return dice_indices_
 

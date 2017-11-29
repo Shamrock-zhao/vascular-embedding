@@ -1,6 +1,9 @@
 
+import json
+import numpy as np
+
 from train import train
-from predict import predict
+from predict import predict, evaluate_predictions
 
 from os import path, makedirs
 from glob import glob
@@ -10,7 +13,7 @@ from data_preparation.util.files_processing import natural_key
 
 
 
-def run_experiment(experiment_folder, validation_set_path, output_path, load_weights=False, crf=False):
+def run_experiment(experiment_folder, validation_set_path, output_path, evaluate=True, load_weights=False, crf=False):
 
     # retrieve configuration files names
     config_filenames = sorted(glob(experiment_folder + '*.ini'), key=natural_key)
@@ -22,11 +25,16 @@ def run_experiment(experiment_folder, validation_set_path, output_path, load_wei
 
     # setup the validation set folders
     val_image_path = path.join(validation_set_path, 'images')
+    val_image_labels = path.join(validation_set_path, 'labels')
     val_fov_mask_path = path.join(validation_set_path, 'masks')
     # setup the output path by adding the experiment id
     output_path = path.join(output_path, experiment_id)
     if not path.exists(output_path):
         makedirs(output_path)
+
+    # if necessary, initialize an array of mean dice coefficients
+    if evaluate:
+        mean_performance_per_experiment = np.zeros((len(config_filenames), 1), dtype=np.float32)
 
     # run each experiment in the folder
     for i in range(0, len(config_filenames)):
@@ -49,6 +57,16 @@ def run_experiment(experiment_folder, validation_set_path, output_path, load_wei
         # evaluate on the validation set
         predict(val_image_path, val_fov_mask_path, current_output_path, model_filename, 
                 parser['experiment']['image-preprocessing'], crf)
+        
+        # if necessary, evaluate the results
+        if evaluate:
+            mean_performance_per_experiment[i], _ = evaluate_predictions(path.join(current_output_path, 'segmentations'), val_image_labels)
+    
+    # if necessary, write the results on a log file in the root folder
+    if evaluate:
+        with open(path.join(output_path, dataset_name, experiment_id + '.txt'), 'w') as file:
+            for i in range(0, len(config_filenames)):
+                file.write(config_filenames[i] + ' - Dice: ' + str(mean_performance_per_experiment[i]))
 
 
 
@@ -62,10 +80,11 @@ if __name__ == '__main__':
     parser.add_argument("experiment_folder", help="path to the configuration files of the experiment", type=str)
     parser.add_argument("validation_set_path", help="path to the validation data", type=str)
     parser.add_argument("output_path", help="path to save the results", type=str)
+    parser.add_argument("--evaluate", help="boolean indicating if each experiment must be evaluated", type=str, default='True')
     parser.add_argument("--load_weights", help="load pretrained weights when available", type=str, default='False')
     parser.add_argument("--crf", help="CRF refinement", type=str, default='False')
 
     args = parser.parse_args()
 
     run_experiment(args.experiment_folder, args.validation_set_path, args.output_path, 
-                   args.load_weights.upper()=='TRUE', args.crf.upper()=='TRUE')
+                   args.evaluate.upper()=='TRUE', args.load_weights.upper()=='TRUE', args.crf.upper()=='TRUE')
