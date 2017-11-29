@@ -17,6 +17,8 @@ def run_experiment(experiment_folder, validation_set_path, output_path, load_wei
 
     # get experiment id
     experiment_id = experiment_folder.split('/')[-1]
+    if experiment_id == '':
+        experiment_id = experiment_folder.split('/')[-2]
 
     # setup the validation set folders
     val_image_path = path.join(validation_set_path, 'images')
@@ -31,6 +33,16 @@ def run_experiment(experiment_folder, validation_set_path, output_path, load_wei
         
         parser = ConfigParser()
         parser.read(config_filenames[i])
+
+        # get the data set name
+        dataset_name = parser['folders']['data-path'].split('/')[-1]
+        if dataset_name == '':
+            dataset_name = parser['folders']['data-path'].split('/')[-2]
+
+        # create a folder with the dataset name
+        current_output_path = path.join(output_path, dataset_name)
+        if not path.exists(current_output_path):
+            makedirs(current_output_path)
 
         # train the model
         model_filename = train(config_filenames[i], load_weights)
