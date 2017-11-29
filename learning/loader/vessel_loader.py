@@ -5,9 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
+from PIL import Image
 from os import listdir, path
 from torch.utils import data
-from scipy import misc
+from scipy import misc, ndimage
 
 
 
@@ -45,14 +46,16 @@ class VesselPatchLoader(data.Dataset):
         lbl_fullname = path.join(self.labels_path, img_name + '.gif')
 
         img = misc.imread(img_fullname)
-        img = np.asarray(img, dtype=np.float32)
-        img = (img - np.mean(img)) / np.std(img) # normalize by its own mean and standard deviation
-
+        img = np.asarray(img, dtype=np.uint8)
+        
         lbl = misc.imread(lbl_fullname)
         lbl = np.array(lbl, dtype=np.int32)[:,:,0] // 255
 
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
+
+        img = np.asarray(img, dtype=np.float32)
+        img = (img - np.mean(img)) / np.std(img) # normalize by its own mean and standard deviation
 
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
@@ -63,10 +66,20 @@ class VesselPatchLoader(data.Dataset):
     def transform(self, img, lbl):
         # TODO: Implement data augmentation
 
-        img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
+        zoom_level = np.random.uniform(1, 3)
+        zoomed_img = misc.imresize(img[:,:,0], zoom_level)
+        for i in range(1, img.shape[2]):
+            zoomed_img = np.dstack((zoomed_img, misc.imresize(img[:,:,i], zoom_level)))
+        zoomed_lbl = misc.imresize(lbl, zoom_level, interp='nearest') // 255
 
-        return img, lbl
+        if (zoomed_img.shape[0] > img.shape[0]) or (zoomed_img.shape[1] > img.shape[1]):
+            
+            first_x = random.randint(0, zoomed_img.shape[0] - img.shape[0])
+            first_y = random.randint(0, zoomed_img.shape[1] - img.shape[1])
+            zoomed_img = zoomed_img[first_x : img.shape[0] + first_x, first_y : img.shape[1] + first_y, :]
+            zoomed_lbl = zoomed_lbl[first_x : lbl.shape[0] + first_x, first_y : lbl.shape[1] + first_y]
+
+        return zoomed_img, zoomed_lbl
 
 
 
