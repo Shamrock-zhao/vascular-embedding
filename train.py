@@ -136,10 +136,13 @@ def train(config_file, load_weights=False):
         # Assign this loss to the array of losses and update the average loss if possible
         if (epoch - first_epoch) >= 5:
             # the previous loss will be 
-            previous_epoch_loss = np.mean(epoch_losses[i-5:i]) 
+            previous_epoch_loss = np.mean(epoch_losses[loop_index-5:loop_index]) 
         else:
             # to skip convergence
-            previous_epoch_loss = current_epoch_loss * 100
+            previous_epoch_loss = current_epoch_loss
+
+        # restart current_epoch_loss
+        current_epoch_loss = 0.0
 
         # for each batch
         for i, (images, labels) in enumerate(train_loader):
@@ -195,8 +198,6 @@ def train(config_file, load_weights=False):
         plotter.display_scores(validation_image_scores, epoch)
         plotter.display_segmentation(validation_image_segmentation, epoch)
 
-        # restart current_epoch_loss
-        current_epoch_loss = 0.0
         # update the iterator
         loop_index = loop_index + 1
 
