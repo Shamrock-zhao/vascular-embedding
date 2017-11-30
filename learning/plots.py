@@ -26,12 +26,12 @@ class VisdomLinePlotter(object):
 
     def display_scores(self, image, epoch):
         if self.scores_window is None:
-            self.scores_window = self.viz.image(image, opts=dict(title=self.validation_image_name, caption='Epoch={}'.format(str(epoch))))
+            self.scores_window = self.viz.image(image, env=self.env, opts=dict(title=self.validation_image_name, caption='Epoch={}'.format(str(epoch))))
         else:
             self.viz.image(image, win=self.scores_window, env=self.env, opts=dict(title=self.validation_image_name, caption='Epoch={}'.format(str(epoch))))
 
     def display_segmentation(self, image, epoch):
         if self.segmentation_window is None:
-            self.segmentation_window = self.viz.image(image, opts=dict(title=self.validation_image_name, caption='Epoch={}'.format(str(epoch))))
+            self.segmentation_window = self.viz.image(image, env=self.env, opts=dict(title=self.validation_image_name, caption='Epoch={}'.format(str(epoch))))
         else:
             self.viz.image(image, win=self.segmentation_window, env=self.env, opts=dict(title=self.validation_image_name, caption='Epoch={}'.format(str(epoch))))

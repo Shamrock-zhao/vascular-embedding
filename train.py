@@ -27,7 +27,7 @@ from data_preparation.util.files_processing import natural_key
 from learning.models import get_model
 from learning.loader import get_loader
 from learning.loss import cross_entropy2d
-from learning.metrics import dice_index
+from learning.metrics import dice_index, jaccard_index
 from learning.plots import VisdomLinePlotter
 from predict import crf_refinement
 
@@ -89,10 +89,13 @@ def train(config_file, load_weights=False):
     if load_weights:
         checkpoints_filenames = sorted(glob(path.join(dir_checkpoints, '*.pkl')), key=natural_key)
         if len(checkpoints_filenames) > 0:
-            model.load_state_dict(torch.load(checkpoints_filenames[-1]))
+            # identify last checkpoint
             checkpoint_name = ntpath.basename(checkpoints_filenames[-1])
+            print('Last model found: {}'.format(checkpoint_name))
+            # load it
+            model.load_state_dict(torch.load(checkpoints_filenames[-1]))
+            # retrieve first epoch from the name
             first_epoch = int(((checkpoint_name.split('_'))[-1].split('.'))[0]) + 1
-            
             # evaluate the validation image on the current model
             validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
             validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
@@ -119,11 +122,30 @@ def train(config_file, load_weights=False):
     # ---------------------------
     n_epochs = int(config['training']['epochs'])
     epoch_size = len(t_loader) // int(config['training']['batch-size'])
-    current_epoch_loss = 0.0
+    epsilon = float(config['training']['convergence-threshold'])
 
-    for epoch in range(first_epoch, n_epochs):
+    current_epoch_val_dice = 0.0
+    previous_epoch_val_dice = -1000.0
+    epoch_val_dice = np.zeros((n_epochs - first_epoch, 1), dtype=np.float32)
+    
+    epoch = first_epoch
+
+    # repeat while not converge
+    loop_index = 0
+    while not (converge(previous_epoch_val_dice, current_epoch_val_dice, epsilon, loop_index)) and (epoch < n_epochs):
         
         model.train()
+
+        # Assign this loss to the array of losses and update the average loss if possible
+        if (epoch - first_epoch) > 5:
+            # the previous loss will be 
+            previous_epoch_val_dice = np.mean(epoch_losses[loop_index-5:loop_index]) 
+        else:
+            # to skip convergence
+            previous_epoch_val_dice = current_epoch_val_dice
+
+        # restart current_epoch_loss
+        current_epoch_loss = 0.0
 
         # for each batch
         for i, (images, labels) in enumerate(train_loader):
@@ -165,7 +187,7 @@ def train(config_file, load_weights=False):
         current_epoch_loss = current_epoch_loss / epoch_size
 
         # Run validation
-        mean_val_loss, mean_val_dice = validate(v_loader, val_loader, model, config)
+        mean_val_loss, mean_val_dice, mean_val_jaccard = validate(v_loader, val_loader, model, config)
 
         # evaluate the validation image on the current model
         validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
@@ -174,15 +196,22 @@ def train(config_file, load_weights=False):
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)
         plotter.plot('loss', 'validation', epoch+1, mean_val_loss)
-        plotter.plot('dice', 'validation', epoch+1, mean_val_dice)
+        plotter.plot('dice', 'dice', epoch+1, mean_val_dice)
+        plotter.plot('dice', 'jaccard', epoch+1, mean_val_jaccard)
         plotter.display_scores(validation_image_scores, epoch)
         plotter.display_segmentation(validation_image_segmentation, epoch)
 
-        # restart current_epoch_loss
-        current_epoch_loss = 0.0
+        # update the iterator
+        loop_index = loop_index + 1
+        # update the dice value in the validation set
+        current_epoch_val_dice = mean_val_dice
+        epoch_val_dice[loop_index] = current_epoch_val_dice
 
         # save current checkpoint
         torch.save(model.state_dict(), path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
+
+        # update the epoch
+        epoch = epoch + 1
 
     # save the final model
     torch.save(model, path.join(dir_checkpoints, "model.pkl"))
@@ -197,6 +226,7 @@ def validate(loader, validation_loader, model, config):
     model.eval()
 
     mean_val_dice = 0.0
+    mean_val_jaccard = 0.0
     mean_loss = 0.0
     n_iterations = len(loader) // int(config['training']['batch-size'])
 
@@ -226,20 +256,35 @@ def validate(loader, validation_loader, model, config):
         # sum up all the jaccard indices
         for gt_, pred_ in zip(gt, pred):
             mean_val_dice += dice_index(gt_, pred_)
+            mean_val_jaccard += jaccard_index(gt_, pred_)
         # and the loss function
         mean_loss += loss.data[0]
     
     # Compute average loss
     mean_loss = mean_loss / n_iterations
-    # Compute average Jaccard
+    # Compute average Dice
     mean_val_dice = mean_val_dice / len(loader)
+    # Compute average Jaccard
+    mean_val_jaccard = mean_val_jaccard / len(loader)
 
-    return mean_loss, mean_val_dice
+    return mean_loss, mean_val_dice, mean_val_jaccard
 
 
 
 def parse_boolean(input_string):
     return input_string.upper()=='TRUE'
+
+
+
+def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
+    
+    if loop_index < 5:
+        return False
+    else:
+        print('Previous Dice: {}'.format(previous_epoch_loss))
+        print('Absolute difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss)))
+        print('Reñatove difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss))
+        return (abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss) < epsilon
 
 
 

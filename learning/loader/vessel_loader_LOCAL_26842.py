@@ -46,15 +46,8 @@ class VesselPatchLoader(data.Dataset):
         lbl_fullname = path.join(self.labels_path, img_name + '.gif')
 
         img = misc.imread(img_fullname)
-<<<<<<< HEAD
         img = np.asarray(img, dtype=np.uint8)
         
-=======
-        img = np.asarray(img, dtype=np.float32)
-        # normalize by its own mean and standard deviation
-        #img = (img - np.mean(img)) / np.std(img) 
-
->>>>>>> issue-2
         lbl = misc.imread(lbl_fullname)
         lbl = np.array(lbl, dtype=np.int32)[:,:,0] // 255
 
