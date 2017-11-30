@@ -63,6 +63,8 @@ class unet(nn.Module):
         # initialize the pad
         pad = int(self.patch_size/2)
 
+        mean_image = np.mean(image)
+        std_image = np.std(image)
         
         size_x = math.ceil(image.shape[0] / self.patch_size) * self.patch_size
         size_y = math.ceil(image.shape[1] / self.patch_size) * self.patch_size
@@ -81,7 +83,8 @@ class unet(nn.Module):
                 
                 # get current patch
                 current_patch = np.asarray(padded_image[i-pad:i+pad, j-pad:j+pad, :], dtype=np.float32)
-                current_patch = (current_patch - np.mean(current_patch)) / (np.std(current_patch) + 0.00001) # normalize by its own mean and standard deviation
+                # normalize by the image mean and standard deviation
+                #current_patch = (current_patch - mean_image) / std_image 
 
                 current_patch = torch.from_numpy(current_patch).float()
                 current_patch = torch.unsqueeze(current_patch, 0)

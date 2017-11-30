@@ -46,7 +46,8 @@ class VesselPatchLoader(data.Dataset):
 
         img = misc.imread(img_fullname)
         img = np.asarray(img, dtype=np.float32)
-        img = (img - np.mean(img)) / np.std(img) # normalize by its own mean and standard deviation
+        # normalize by its own mean and standard deviation
+        #img = (img - np.mean(img)) / np.std(img) 
 
         lbl = misc.imread(lbl_fullname)
         lbl = np.array(lbl, dtype=np.int32)[:,:,0] // 255

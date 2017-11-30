@@ -137,7 +137,7 @@ def train(config_file, load_weights=False):
         model.train()
 
         # Assign this loss to the array of losses and update the average loss if possible
-        if (epoch - first_epoch) >= 5:
+        if (epoch - first_epoch) > 5:
             # the previous loss will be 
             previous_epoch_val_dice = np.mean(epoch_losses[loop_index-5:loop_index]) 
         else:
@@ -204,6 +204,7 @@ def train(config_file, load_weights=False):
         # update the iterator
         loop_index = loop_index + 1
         # update the dice value in the validation set
+        current_epoch_val_dice = mean_val_dice
         epoch_val_dice[loop_index] = current_epoch_val_dice
 
         # save current checkpoint
@@ -280,9 +281,9 @@ def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
     if loop_index < 5:
         return False
     else:
-        print(previous_epoch_loss)
-        print(abs(previous_epoch_loss - current_epoch_loss))
-        print(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss)
+        print('Previous Dice: {}'.format(previous_epoch_loss))
+        print('Absolute difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss)))
+        print('Reñatove difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss))
         return (abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss) < epsilon
 
 
