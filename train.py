@@ -126,7 +126,7 @@ def train(config_file, load_weights=False):
 
     current_epoch_val_dice = 0.0
     previous_epoch_val_dice = -1000.0
-    epoch_val_dice = np.zeros((n_epochs - first_epoch, 1), dtype=np.float32)
+    epoch_val_dice = np.zeros((n_epochs - first_epoch + 1, 1), dtype=np.float32)
     
     epoch = first_epoch
 
@@ -139,7 +139,7 @@ def train(config_file, load_weights=False):
         # Assign this loss to the array of losses and update the average loss if possible
         if (epoch - first_epoch) > 5:
             # the previous loss will be 
-            previous_epoch_val_dice = np.mean(epoch_losses[loop_index-5:loop_index]) 
+            previous_epoch_val_dice = np.mean(epoch_val_dice[loop_index-5:loop_index]) 
         else:
             # to skip convergence
             previous_epoch_val_dice = current_epoch_val_dice
@@ -283,8 +283,8 @@ def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
     else:
         print('Previous Dice: {}'.format(previous_epoch_loss))
         print('Absolute difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss)))
-        print('Reñatove difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss))
-        return (abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss) < epsilon
+        print('Relative difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss))
+        return (abs(previous_epoch_loss - current_epoch_loss) < epsilon
 
 
 

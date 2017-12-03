@@ -78,13 +78,18 @@ class unet(nn.Module):
         padded_image[0:image.shape[0], 0:image.shape[1], :] = image
 
         # loop for every patch in the image    
-        for i in range(pad, padded_image.shape[0] + pad, self.patch_size):
-            for j in range(pad, padded_image.shape[1] + pad, self.patch_size):
+        #increment = self.patch_size
+        increment = 1
+        m = nn.Softmax2d()
+        for i in range(pad, image.shape[0] - pad, increment):
+            for j in range(pad, image.shape[1] - pad, increment):
                 
                 # get current patch
                 current_patch = np.asarray(padded_image[i-pad:i+pad, j-pad:j+pad, :], dtype=np.float32)
                 # normalize by the image mean and standard deviation
-                #current_patch = (current_patch - mean_image) / std_image 
+                current_patch = (current_patch - np.mean(current_patch)) / np.std(current_patch)
+                #print(str(i) + '-' + str(j))
+                #print(current_patch.shape)
 
                 current_patch = torch.from_numpy(current_patch).float()
                 current_patch = torch.unsqueeze(current_patch, 0)
@@ -99,7 +104,6 @@ class unet(nn.Module):
                 scores = self.forward(current_patch)
                 segmentation[i-pad:i+pad, j-pad:j+pad] = scores.data.max(1)[1].cpu().numpy()
 
-                m = nn.Softmax2d()
                 segmentation_scores[i-pad:i+pad, j-pad:j+pad] = m(scores).data[0][1].cpu().numpy()
 
                 unary_potentials[:,i-pad:i+pad, j-pad:j+pad] = m(scores).data[0].cpu().numpy()
@@ -108,5 +112,102 @@ class unet(nn.Module):
         segmentation_scores = segmentation_scores[0:image.shape[0], 0:image.shape[1]]
         segmentation = segmentation[0:image.shape[0], 0:image.shape[1]]
         unary_potentials = unary_potentials[:,0:image.shape[0], 0:image.shape[1]]
+
+        return segmentation_scores, segmentation, unary_potentials
+
+
+
+    def efficient_prediction_from_full_image(self, image):
+        
+        # initialize the pad
+        pad = int(self.patch_size/2)
+
+        mean_image = np.mean(image)
+        std_image = np.std(image)
+        
+        size_x = math.ceil(image.shape[0] / self.patch_size) * self.patch_size
+        size_y = math.ceil(image.shape[1] / self.patch_size) * self.patch_size
+        
+        # initialize matrices for the segmentations and the padded image
+        segmentation_scores = np.zeros((size_x, size_y), dtype=np.float32)
+        segmentation = np.zeros(segmentation_scores.shape, dtype=np.float32)
+        unary_potentials = np.zeros((size_x, size_y, 2), dtype=np.float32)
+        padded_image = np.zeros((size_x, size_y, 3), dtype=np.uint8)
+        # pad the image
+        padded_image[0:image.shape[0], 0:image.shape[1], :] = image
+
+        length_patch_block = 1024
+        patch_block = np.empty((self.patch_size, self.patch_size, image.shape[2], length_patch_block), dtype=np.float32)
+        pos_i = np.empty((length_patch_block), dtype=int)
+        pos_j = np.empty((length_patch_block), dtype=int)
+        filling_iterator = 0
+        last_pos_i = pad
+        last_pos_j = pad
+
+        for i in range(pad, padded_image.shape[0] - pad, 1):
+            for j in range(pad, padded_image.shape[1] - pad, 1):
+
+                if filling_iterator < length_patch_block:
+
+                    current_patch = np.asarray(padded_image[i-pad:i+pad, j-pad:j+pad, :], dtype=np.float32)
+                    patch_block[:,:,:,filling_iterator] = (current_patch - np.mean(current_patch)) / (np.std(current_patch) + 0.000001)
+                    pos_i[filling_iterator] = i
+                    pos_j[filling_iterator] = j
+                    filling_iterator = filling_iterator + 1
+
+                elif filling_iterator == length_patch_block:
+
+                    current_patch = torch.from_numpy(patch_block).float()
+                    current_patch = current_patch.permute(3,2,0,1)
+                    if torch.cuda.is_available():
+                        current_patch = Variable(current_patch, volatile=True).cuda()
+                    else:
+                        current_patch = Variable(current_patch, volatile=True)    
+                    
+                    scores = self.forward(current_patch)
+                    
+                    m = nn.Softmax2d()
+                    up = m(scores).data.cpu().permute(2,3,1,0).numpy()
+                    scores = up[:,:,1,:]
+                    segm = scores > 0.5
+
+                    for iterator in range(0, length_patch_block):
+                        sub_i = pos_i[iterator]
+                        sub_j = pos_j[iterator]
+                        segmentation_scores[sub_i-pad:sub_i+pad, sub_j-pad:sub_j+pad] = scores[:,:,iterator]
+                        segmentation[sub_i-pad:sub_i+pad, sub_j-pad:sub_j+pad] = segm[:,:,iterator]
+                        unary_potentials[sub_i-pad:sub_i+pad, sub_j-pad:sub_j+pad, :] = up[:,:,:,iterator]
+
+                    last_pos_i = i
+                    last_pos_j = j
+                    filling_iterator = 0
+                    patch_block = np.empty((self.patch_size, self.patch_size, image.shape[2], length_patch_block), dtype=np.float32)
+
+        if filling_iterator < length_patch_block:
+            
+            current_patch = torch.from_numpy(patch_block).float()
+            current_patch = current_patch.permute(3,2,0,1)
+            if torch.cuda.is_available():
+                current_patch = Variable(current_patch, volatile=True).cuda()
+            else:
+                current_patch = Variable(current_patch, volatile=True)    
+            scores = self.forward(current_patch)
+            
+            m = nn.Softmax2d()
+            up = np.asarray(m(scores).data.cpu().permute(2,3,1,0).numpy(), dtype=np.float32)
+            scores = up[:,:,1,:]
+            segm = scores > 0.5
+
+            iterator = 0
+            for iterator in range(0, filling_iterator):
+                sub_i = pos_i[iterator]
+                sub_j = pos_j[iterator]
+                segmentation_scores[sub_i-pad:sub_i+pad, sub_j-pad:sub_j+pad] = scores[:,:,iterator]
+                segmentation[sub_i-pad:sub_i+pad, sub_j-pad:sub_j+pad] = segm[:,:,iterator]
+                unary_potentials[sub_i-pad:sub_i+pad, sub_j-pad:sub_j+pad, :] = up[:,:,:,iterator]
+            
+        segmentation_scores = segmentation_scores[0:image.shape[0], 0:image.shape[1]]
+        segmentation = segmentation[0:image.shape[0], 0:image.shape[1]]
+        unary_potentials = unary_potentials[0:image.shape[0], 0:image.shape[1], :]
 
         return segmentation_scores, segmentation, unary_potentials
