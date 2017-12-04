@@ -1,7 +1,7 @@
 
 import json
 
-from learning.loader.vessel_loader import VesselPatchLoader
+from learning.loader.vessel_loader import VesselPatchLoader, PatchFromFundusImageLoader
 
 
 def get_loader(name):
@@ -10,6 +10,7 @@ def get_loader(name):
     :param name:
     """
     return {
-        'vessel': VesselPatchLoader,
+        'offline': VesselPatchLoader,
+        'online': PatchFromFundusImageLoader,
     }[name]
 
