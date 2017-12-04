@@ -300,7 +300,7 @@ def organize_drhagis(data_path='../data'):
     zip_file = path.join('../tmp', 'DRHAGIS.zip')
     if not path.exists(zip_file):
         print('Downloading data from ' + URL)
-        urllib.request.urlretrieve(URL, data_path)
+        urllib.request.urlretrieve(URL, zip_file)
     else:
         print('DRHAGIS.zip file exists. Continuing processing...')
 
