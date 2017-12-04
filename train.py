@@ -51,17 +51,23 @@ def train(config_file, load_weights=False):
         makedirs(dir_checkpoints)
 
     # setup data loader for training and validation
-    data_loader = get_loader('vessel')
-    t_loader = data_loader(data_path, 'training', 
-                        config['experiment']['sampling-strategy'],
-                        config['experiment']['image-preprocessing'], 
-                        parse_boolean(config['training']['augmented']))
-    train_loader = data.DataLoader(t_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
-    v_loader = data_loader(data_path, 'validation', 
-                        config['experiment']['sampling-strategy'],
-                        config['experiment']['image-preprocessing'], 
-                        parse_boolean(config['training']['augmented']))
-    val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+    data_loader = get_loader(config['experiment']['data-loader'])
+
+    if config['experiment']['data-loader'] == 'online':
+
+        t_loader = data_loader(data_path, 'training', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], parse_boolean(config['training']['augmented']))
+        train_loader = data.DataLoader(t_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+
+        v_loader = data_loader(data_path, 'validation', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], False)
+        val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+
+    elif config['experiment']['data-loader'] == 'offline':
+        
+        t_loader = data_loader(data_path, 'training', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], parse_boolean(config['training']['augmented']), 200000, int(config['architecture']['patch-size']))
+        train_loader = data.DataLoader(t_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+        
+        v_loader = data_loader(data_path, 'validation', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], False, 10000, int(config['architecture']['patch-size']))
+        val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
 
     # open a validation image to show its progress during training
     val_image_name = listdir(path.join(data_path, 'validation', 'images'))[0]
@@ -284,7 +290,7 @@ def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
         print('Previous Dice: {}'.format(previous_epoch_loss))
         print('Absolute difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss)))
         print('Relative difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss))
-        return (abs(previous_epoch_loss - current_epoch_loss) < epsilon
+        return abs(previous_epoch_loss - current_epoch_loss) < epsilon
 
 
 
