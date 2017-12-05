@@ -13,7 +13,11 @@ from scipy import misc, ndimage
 
 
 class PatchFromFundusImageLoader(data.Dataset):
-    
+    '''
+    Use this data loader if you prefer to compute patches online.
+    '''
+
+
     def __init__(self, data_folder, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False, num_patches=200000, patch_size=64):
         
         random.seed(7)
@@ -58,22 +62,46 @@ class PatchFromFundusImageLoader(data.Dataset):
 
     def __getitem__(self, index):
         
+        # pick a random image
         index_ = random.randint(0, self.images.shape[3]-1)
         current_img = self.images[:,:,:,index_]
         current_lbl = self.labels[:,:,index_]
 
-        i = random.randint(self.pad, current_img.shape[0] - self.pad) 
-        j = random.randint(self.pad, current_img.shape[1] - self.pad)
+        # get a random coordinate according to the sampling rule
+        if self.sampling_strategy == 'uniform':
+            
+            i = random.randint(self.pad, current_img.shape[0] - self.pad) 
+            j = random.randint(self.pad, current_img.shape[1] - self.pad)
 
+        elif self.sampling_strategy == 'guided-by-labels':
+            
+            # pad the labels to avoid picking up an element outside the borders
+            current_lbl_ = np.ones(current_lbl.shape, dtype=int) * -1
+            current_lbl_[self.pad:current_lbl.shape[0]-self.pad, self.pad:current_lbl.shape[1]-self.pad] = current_lbl[self.pad:current_lbl.shape[0]-self.pad, self.pad:current_lbl.shape[1]-self.pad]
+
+            if random.uniform(0, 1) < 0.5:
+                # sample centered on background
+                x,y = np.where(current_lbl_==0)
+            else:
+                # sample centered on vessels
+                x,y = np.where(current_lbl_==1)
+
+            i = x[random.randint(0, len(x))]
+            j = y[random.randint(0, len(y))]
+         
+        # get the patch
         img = current_img[i-self.pad : i+self.pad, j-self.pad : j+self.pad, :]
         lbl = current_lbl[i-self.pad : i+self.pad, j-self.pad : j+self.pad]
 
+        # use data augmentation if required
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
 
+        # normalize data
         img = np.asarray(img, dtype=np.float32)
         img = (img - np.mean(img)) / (np.std(img) + 0.000001) # normalize by its own mean and standard deviation
 
+        # set up variables for pytorch
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
 
@@ -82,24 +110,26 @@ class PatchFromFundusImageLoader(data.Dataset):
 
     def transform(self, img, lbl):
 
-        zoom_level = np.random.uniform(1, 3)
-        zoomed_img = misc.imresize(img[:,:,0], zoom_level)
-        for i in range(1, img.shape[2]):
-            zoomed_img = np.dstack((zoomed_img, misc.imresize(img[:,:,i], zoom_level)))
+        # choose a zoom level
+        zoom_level = random.uniform(1, 3)
+        # resize the image
+        zoomed_img = misc.imresize(img, zoom_level)
         zoomed_lbl = misc.imresize(lbl, zoom_level, interp='nearest') // 255
 
-        if (zoomed_img.shape[0] > img.shape[0]) or (zoomed_img.shape[1] > img.shape[1]):
-            
-            first_x = random.randint(0, zoomed_img.shape[0] - img.shape[0])
-            first_y = random.randint(0, zoomed_img.shape[1] - img.shape[1])
-            zoomed_img = zoomed_img[first_x : img.shape[0] + first_x, first_y : img.shape[1] + first_y, :]
-            zoomed_lbl = zoomed_lbl[first_x : lbl.shape[0] + first_x, first_y : lbl.shape[1] + first_y]
+        # crop the parts outside
+        i = zoomed_img.shape[0] // 2
+        j = zoomed_img.shape[1] // 2
+        zoomed_img = zoomed_img[ i-self.pad:i+self.pad, j-self.pad:j+self.pad, :]
+        zoomed_lbl = zoomed_lbl[ i-self.pad:i+self.pad, j-self.pad:j+self.pad ]
 
         return zoomed_img, zoomed_lbl
 
 
 
 class VesselPatchLoader(data.Dataset):
+    '''
+    Use this data loader is you prefer to work with precomputed patches.
+    '''
     
     def __init__(self, data_folder, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False):
         
@@ -151,17 +181,18 @@ class VesselPatchLoader(data.Dataset):
 
     def transform(self, img, lbl):
 
-        zoom_level = np.random.uniform(1, 3)
-        zoomed_img = misc.imresize(img[:,:,0], zoom_level)
-        for i in range(1, img.shape[2]):
-            zoomed_img = np.dstack((zoomed_img, misc.imresize(img[:,:,i], zoom_level)))
-        zoomed_lbl = misc.imresize(lbl, zoom_level, interp='nearest') // 255
+        pad = img // 2
+        # choose a zoom level
+        zoom_level = random.uniform(1, 3)
+        # resize the image
+        #zoomed_img = misc.imresize(img[:,:,0], zoom_level)
+        zoomed_img = ndimage.zoom(img, (zoom_level, zoom_level, 1))
+        zoomed_lbl = ndimage.zoom(lbl, (zoom_level, zoom_level), mode='nearest') // 255
 
-        if (zoomed_img.shape[0] > img.shape[0]) or (zoomed_img.shape[1] > img.shape[1]):
-            
-            first_x = random.randint(0, zoomed_img.shape[0] - img.shape[0])
-            first_y = random.randint(0, zoomed_img.shape[1] - img.shape[1])
-            zoomed_img = zoomed_img[first_x : img.shape[0] + first_x, first_y : img.shape[1] + first_y, :]
-            zoomed_lbl = zoomed_lbl[first_x : lbl.shape[0] + first_x, first_y : lbl.shape[1] + first_y]
+        # crop the parts outside
+        i = zoomed_img.shape[0] // 2
+        j = zoomed_img.shape[1] // 2
+        zoomed_img = zoomed_img[ i-pad:i+pad, j-pad:j+pad, :]
+        zoomed_lbl = zoomed_lbl[ i-pad:i+pad, j-pad:j+pad ]
 
         return zoomed_img, zoomed_lbl
