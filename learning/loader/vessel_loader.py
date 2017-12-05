@@ -39,17 +39,17 @@ class PatchFromFundusImageLoader(data.Dataset):
         self.label_ids = sorted(listdir(self.labels_path))
 
         # read the first image and its annotations
-        image = misc.imread(path.join(self.img_path, self.image_ids[0]))
-        label = misc.imread(path.join(self.labels_path, self.label_ids[0]))
+        image = np.asarray(misc.imread(path.join(self.img_path, self.image_ids[0])), dtype=np.uint8)
+        label = np.asarray(misc.imread(path.join(self.labels_path, self.label_ids[0])), dtype=np.int32) // 255
         # initialize arrays for the images and the labels
         self.images = np.empty((image.shape[0], image.shape[1], image.shape[2], len(self.image_ids)), dtype=np.uint8)
-        self.labels = np.empty((label.shape[0], label.shape[1], len(self.label_ids)), dtype=np.uint8)
+        self.labels = np.empty((label.shape[0], label.shape[1], len(self.label_ids)), dtype=np.int32)
         self.images[:,:,:,0] = image
         self.labels[:,:,0] = label
         # open them so that we can randomly get a sample from them
         for i in range(1, len(self.image_ids)):
-            self.images[:,:,:,i] = misc.imread(path.join(self.img_path, self.image_ids[i]))
-            self.labels[:,:,i] = misc.imread(path.join(self.labels_path, self.label_ids[i])) // 255
+            self.images[:,:,:,i] = np.asarray(misc.imread(path.join(self.img_path, self.image_ids[i])), dtype=np.uint8)
+            self.labels[:,:,i] = np.asarray(misc.imread(path.join(self.labels_path, self.label_ids[i])), dtype=np.int32) // 255
 
 
     def __len__(self):
@@ -72,7 +72,7 @@ class PatchFromFundusImageLoader(data.Dataset):
             img, lbl = self.transform(img, lbl)
 
         img = np.asarray(img, dtype=np.float32)
-        img = (img - np.mean(img)) / np.std(img) # normalize by its own mean and standard deviation
+        img = (img - np.mean(img)) / (np.std(img) + 0.000001) # normalize by its own mean and standard deviation
 
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
@@ -141,7 +141,7 @@ class VesselPatchLoader(data.Dataset):
             img, lbl = self.transform(img, lbl)
 
         img = np.asarray(img, dtype=np.float32)
-        img = (img - np.mean(img)) / np.std(img) # normalize by its own mean and standard deviation
+        img = (img - np.mean(img)) / (np.std(img) + 0.000001) # normalize by its own mean and standard deviation
 
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
