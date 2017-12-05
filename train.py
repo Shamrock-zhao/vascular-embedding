@@ -1,14 +1,14 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.models as models
+
 import sys
 import visdom
 import argparse
 import numpy as np
 import warnings
 import ntpath
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.models as models
 
 import matplotlib.pyplot as plt
 
@@ -290,7 +290,7 @@ def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
         print('Previous Dice: {}'.format(previous_epoch_loss))
         print('Absolute difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss)))
         print('Relative difference: {}'.format(abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss))
-        return abs(previous_epoch_loss - current_epoch_loss) < epsilon
+        return (abs(previous_epoch_loss - current_epoch_loss) / previous_epoch_loss) < epsilon
 
 
 

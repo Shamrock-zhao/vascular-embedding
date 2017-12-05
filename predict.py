@@ -65,8 +65,8 @@ def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True):
     # preprocess the image according to the model
     img = preprocess(img, fov_mask, image_preprocessing)  
     # predict the scores
-    #scores, segmentation, unary_potentials = model.module.predict_from_full_image(img)
-    scores, segmentation, unary_potentials = model.module.efficient_prediction_from_full_image(img)
+    scores, segmentation, unary_potentials = model.module.predict_from_full_image(img)
+    #scores, segmentation, unary_potentials = model.module.efficient_prediction_from_full_image(img)
     scores = np.multiply(scores, fov_mask > 0)
     # refine using the crf is necessary
     if crf:
