@@ -79,7 +79,7 @@ class unet(nn.Module):
 
         # loop for every patch in the image    
         #increment = self.patch_size
-        increment = 1
+        increment = self.patch_size
         m = nn.Softmax2d()
         for i in range(pad, image.shape[0] - pad, increment):
             for j in range(pad, image.shape[1] - pad, increment):
@@ -87,7 +87,7 @@ class unet(nn.Module):
                 # get current patch
                 current_patch = np.asarray(padded_image[i-pad:i+pad, j-pad:j+pad, :], dtype=np.float32)
                 # normalize by the image mean and standard deviation
-                current_patch = (current_patch - np.mean(current_patch)) / np.std(current_patch)
+                current_patch = (current_patch - np.mean(current_patch)) / (np.std(current_patch) + 0.000001)
                 #print(str(i) + '-' + str(j))
                 #print(current_patch.shape)
 
