@@ -22,36 +22,7 @@ def modify_and_write_config_file(config_files_path, default_config_file, experim
         parser.set(to_modify[0], to_modify[1], new_values[i])
         # save the experiment
         with open(path.join(output_config_files_folder, new_values[i] + '.ini'), 'w') as output_file:
-            parser.write(output_file)
-
-
-
-def exp_eval_sampling_strategy(config_files_path, default_config_file):
-
-    experiment_name = 'exp_eval_sampling_strategy'
-    to_modify = ['experiment', 'sampling-strategy']
-    sampling_strategies = ['uniform', 'guided-by-labels']
-
-    modify_and_write_config_file(config_files_path, default_config_file, experiment_name, to_modify, sampling_strategies)
-
-
-
-def exp_eval_image_preprocessing(config_files_path, default_config_file):
-    
-    experiment_name = 'exp_eval_image_preprocessing'
-    to_modify = ['experiment', 'image-preprocessing']
-    preprocessing_strategies = ['rgb', 'eq', 'clahe']
-
-    modify_and_write_config_file(config_files_path, default_config_file, experiment_name, to_modify, preprocessing_strategies)
-
-
-def exp_eval_dropout(config_files_path, default_config_file):
-    
-    experiment_name = 'exp_eval_dropout'
-    to_modify = ['architecture', 'dropout']
-    dropout_values = ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5']
-
-    modify_and_write_config_file(config_files_path, default_config_file, experiment_name, to_modify, dropout_values)    
+            parser.write(output_file)  
     
 
 
@@ -69,13 +40,39 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.parameter == 'image-preprocessing':
-        exp_eval_image_preprocessing(args.path, args.default_config_file)
+        
+        experiment_name = 'exp_eval_image_preprocessing'
+        to_modify = ['experiment', 'image-preprocessing']
+        parameters_to_test = ['rgb', 'eq', 'clahe']
+
     elif args.parameter == 'sampling-strategy':
-        exp_eval_sampling_strategy(args.path, args.default_config_file)  
+
+        experiment_name = 'exp_eval_sampling_strategy'
+        to_modify = ['experiment', 'sampling-strategy']
+        parameters_to_test = ['uniform', 'guided-by-labels']
+
     elif args.parameter == 'dropout':
-        exp_eval_dropout(args.path, args.default_config_file)        
+        
+        experiment_name = 'exp_eval_dropout'
+        to_modify = ['architecture', 'dropout']
+        parameters_to_test = ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5']
+
+    elif args.parameter == 'batch-norm':
+        
+        experiment_name = 'exp_eval_batch_norm'
+        to_modify = ['architecture', 'batch-norm']
+        parameters_to_test = ['False', 'True']
+
+    elif args.parameter == 'augmented':
+        
+        experiment_name = 'exp_eval_augmented'
+        to_modify = ['training', 'augmented']
+        parameters_to_test = ['False', 'True']
+
     else:
         raise NameError('Unsuported parameter to tune')
+
+    modify_and_write_config_file(args.path, args.default_config_file, experiment_name, to_modify, parameters_to_test)
 
     
 
