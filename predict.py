@@ -26,7 +26,10 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
     fov_filenames = sorted(listdir(fov_path), key=natural_key)
 
     # open the model
-    model = torch.load(model_filename)
+    if torch.cuda.is_available():
+        model = torch.load(model_filename)
+    else:
+        model = torch.load(model_filename, map_location=lambda storage, loc: storage)
     model.eval()
 
     # initialize the output folders
