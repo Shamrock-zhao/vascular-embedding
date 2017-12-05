@@ -30,39 +30,46 @@ def export_preprocessed_images(root_path='../data', datasets=['DRIVE', 'STARE', 
       for j in range(0, len(subsets)):
         
         current_subset = subsets[j]
-        print('Subset {}'.format(current_subset)) 
 
-        # get the folders for the images and the masks
-        current_image_folder = path.join(root_path, current_dataset, current_subset, 'images')
-        current_mask_folder = path.join(root_path, current_dataset, current_subset, 'masks')
-        # get image filenames
-        image_filenames = sorted(listdir(current_image_folder), key=natural_key)
-        # get mask filenames
-        mask_filenames = sorted(listdir(current_mask_folder), key=natural_key)
+        if not path.exists(path.join(root_path, current_dataset, current_subset)):
 
-        # for each preprocessing strategy
-        for k in range(0, len(preprocessing_strategies)):
-          
-          print('Preprocessing strategy {}'.format(preprocessing_strategies[k]))
+          print('Subset {} doesnt exist. Skipping...'.format(current_subset))
 
-          # prepare the output folder
-          output_folder = current_image_folder + '_' + preprocessing_strategies[k]
-          if not path.exists(output_folder):
-            makedirs(output_folder)
+        else:
+              
+          print('Subset {}'.format(current_subset)) 
 
-          # and now, loop for each image
-          for ii in range(0, len(image_filenames)):
+          # get the folders for the images and the masks
+          current_image_folder = path.join(root_path, current_dataset, current_subset, 'images')
+          current_mask_folder = path.join(root_path, current_dataset, current_subset, 'masks')
+          # get image filenames
+          image_filenames = sorted(listdir(current_image_folder), key=natural_key)
+          # get mask filenames
+          mask_filenames = sorted(listdir(current_mask_folder), key=natural_key)
+
+          # for each preprocessing strategy
+          for k in range(0, len(preprocessing_strategies)):
             
-            print('Image {} being processed with {}'.format(image_filenames[ii], preprocessing_strategies[k]))
+            print('Preprocessing strategy {}'.format(preprocessing_strategies[k]))
 
-            # read the image
-            image = misc.imread(path.join(current_image_folder, image_filenames[ii]))
-            # read the fov mask
-            fov_mask = misc.imread(path.join(current_mask_folder, mask_filenames[ii]))
-            # get the preprocessed image
-            preprocessed_I = preprocess(image, fov_mask, preprocessing_strategies[k])
-            # write the image in the output folder
-            misc.imsave(path.join(output_folder, image_filenames[ii][:-3] + 'png'), preprocessed_I)
+            # prepare the output folder
+            output_folder = current_image_folder + '_' + preprocessing_strategies[k]
+            if not path.exists(output_folder):
+              makedirs(output_folder)
+
+            # and now, loop for each image
+            for ii in range(0, len(image_filenames)):
+              
+              print('Image {} being processed with {}'.format(image_filenames[ii], preprocessing_strategies[k]))
+
+              # read the image
+              image = misc.imread(path.join(current_image_folder, image_filenames[ii]))
+              # read the fov mask
+              fov_mask = misc.imread(path.join(current_mask_folder, mask_filenames[ii]))
+              # get the preprocessed image
+              preprocessed_I = preprocess(image, fov_mask, preprocessing_strategies[k])
+              # write the image in the output folder
+              misc.imsave(path.join(output_folder, image_filenames[ii][:-3] + 'png'), preprocessed_I)
 
 
 
@@ -74,8 +81,9 @@ if __name__ == '__main__':
     # create an argument parser to control the input parameters
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", help="path to the data sets", type=str, default='../data')
+    parser.add_argument("--database", help="database to preprocess", type=str, default='DRIVE, STARE, CHASEDB1, HRF')
 
     args = parser.parse_args()
 
-    databases = ['DRIVE', 'STARE', 'CHASEDB1', 'HRF']
+    databases = args.database.replace(' ','').split(',')
     export_preprocessed_images(args.data_path, databases)
