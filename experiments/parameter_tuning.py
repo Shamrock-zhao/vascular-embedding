@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # create an argument parser to control the input parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", help="configuration files path", type=str)
+    parser.add_argument("path", help="root path to save the configuration files", type=str)
     parser.add_argument("default_config_file", help="fullpath to a default configuration", type=str)
     parser.add_argument("parameter", help="parameter to tune", type=str)
 
