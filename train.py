@@ -143,7 +143,7 @@ def train(config_file, load_weights=False):
         model.train()
 
         # Assign this loss to the array of losses and update the average loss if possible
-        if (epoch - first_epoch) > 5:
+        if (epoch - first_epoch) > 15:
             # the previous loss will be 
             previous_epoch_val_dice = np.mean(epoch_val_dice[loop_index-5:loop_index]) 
         else:
@@ -220,9 +220,9 @@ def train(config_file, load_weights=False):
         epoch = epoch + 1
 
     # save the final model
-    torch.save(model, path.join(dir_checkpoints, "model.pkl"))
+    torch.save(model, path.join(output_path, "model.pkl"))
     # return model name
-    return path.join(dir_checkpoints, "model.pkl")
+    return path.join(output_path, "model.pkl")
 
 
 
@@ -284,7 +284,7 @@ def parse_boolean(input_string):
 
 def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
     
-    if loop_index < 5:
+    if loop_index < 15:
         return False
     else:
         print('Previous Dice: {}'.format(previous_epoch_loss))
