@@ -86,8 +86,8 @@ class PatchFromFundusImageLoader(data.Dataset):
                 # sample centered on vessels
                 x,y = np.where(current_lbl_==1)
 
-            i = x[random.randint(0, len(x))]
-            j = y[random.randint(0, len(y))]
+            i = x[random.randint(0, len(x)-1)]
+            j = y[random.randint(0, len(y)-1)]
          
         # get the patch
         img = current_img[i-self.pad : i+self.pad, j-self.pad : j+self.pad, :]
