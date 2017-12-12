@@ -193,11 +193,15 @@ def train(config_file, load_weights=False):
         current_epoch_loss = current_epoch_loss / epoch_size
 
         # Run validation
+        print('Validating...')
         mean_val_loss, mean_val_dice, mean_val_jaccard = validate(v_loader, val_loader, model, config)
+        print('Validation finished')
 
         # evaluate the validation image on the current model
-        validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
-        validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
+        print('Testing on an image...')
+        validation_image_scores, validation_image_segmentation, unary_potentials = model.module.predict_from_full_image(validation_image)
+        #validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
+        print('Test finished')
 
         # plot values
         plotter.plot('loss', 'train', epoch+1, current_epoch_loss)

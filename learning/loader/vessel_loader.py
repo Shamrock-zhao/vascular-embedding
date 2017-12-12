@@ -70,8 +70,8 @@ class PatchFromFundusImageLoader(data.Dataset):
         # get a random coordinate according to the sampling rule
         if self.sampling_strategy == 'uniform':
             
-            i = random.randint(self.pad, current_img.shape[0] - self.pad) 
-            j = random.randint(self.pad, current_img.shape[1] - self.pad)
+            i = random.randint(self.pad, current_img.shape[0] - self.pad - 1) 
+            j = random.randint(self.pad, current_img.shape[1] - self.pad - 1)
 
         elif self.sampling_strategy == 'guided-by-labels':
             
