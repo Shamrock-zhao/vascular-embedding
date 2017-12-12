@@ -1,4 +1,6 @@
 
+import torch
+
 import numpy as np
 
 from scipy import misc
@@ -44,10 +46,11 @@ def crf_parameter_tuning(validation_data_path, model_filename, compat_vals, sxy_
         for j in range(0, len(sxy)):
             for k in range(0, len(srgb)):
                 
-                # get current configuration
+                # print the current configuration
+                print('Trying with: compat={}, sxy={}, srgb={}'.format(str(compat[i]), str(sxy[j]), str(srgb[k])))
                 compat_ = compat[i]
-                sxy_ = sxy[j]
-                srgb_ = srgb[k]
+                sxy_ = np.ones((2,1)) * sxy[j]
+                srgb_ = np.ones((3,1)) * srgb[k]
                 # initialize an array of dice coefficients
                 current_dice_coefficients = np.zeros((len(images_filenames), 1), dtype=np.float32)
 
@@ -55,25 +58,28 @@ def crf_parameter_tuning(validation_data_path, model_filename, compat_vals, sxy_
                 for ii in range(0, len(images_filenames)):
                     
                     # open image, mask and label
+                    print('image {}/{}'.format(ii + 1, len(images_filenames)))
                     img = np.asarray(misc.imread(path.join(images_folder, images_filenames[ii])), dtype=np.uint8)
                     fov_mask = np.asarray(misc.imread(path.join(fov_masks_folder, fov_masks_filenames[ii])), dtype=np.uint8) // 255
                     labels = np.asarray(misc.imread(path.join(labels_folder, labels_filenames[ii])), dtype=np.uint8) // 255
                     # segment the image
-                    _, segmentation, _ = segment_image(img, fov_mask, model, image_preprocessing, True)
+                    _, segmentation, _ = segment_image(img, fov_mask, model, image_preprocessing, True, 2, sxy_, srgb_, compat_)
                     # evaluate
                     current_dice_coefficients[ii] = dice_index(labels > 0, segmentation > 0)
 
                 # assign the average dice coefficient to this configuration
                 dice_coefficients[i,j,k] = np.mean(current_dice_coefficients)
+                print('Dice = {}'.format(str(dice_coefficients[i,j,k])))
 
     # get the best configuration
     best_configuration = np.argmax(dice_coefficients)
+    dice_coefficient = np.max(dice_coefficients)
     compat_best = best_configuration[0]
     sxy_best = best_configuration[1]
     srgb_best = best_configuration[2]
 
     # return it
-    return compat_best, sxy_best, srgb_best
+    return compat_best, sxy_best, srgb_best, dice_coefficient
 
 
 
@@ -87,11 +93,22 @@ if __name__ == '__main__':
     parser.add_argument("validation_data_path", help="path to the validation data", type=str)
     parser.add_argument("model_filename", help="fullpath to a pretrained model", type=str)
     parser.add_argument("image_preprocessing", help="image preprocessing strategy", type=str)
-    parser.add_argument("--compat_vals", help="compat parameter search space", type=str, default='(0,100,10)')
-    parser.add_argument("--sxy_vals", help="sxy parameter search space", type=str, default='(30,100,10)')
-    parser.add_argument("--srgb_vals", help="parameter to tune", type=str, default='(3,6,1)')
+    parser.add_argument("output_path", help="full path to save the results", type=str)
+    parser.add_argument("--compat_vals", help="compat parameter search space", type=str, default='(1,40,10)')
+    parser.add_argument("--sxy_vals", help="sxy parameter search space", type=str, default='(1,20,5)')
+    parser.add_argument("--srgb_vals", help="parameter to tune", type=str, default='(1,30,5)')
     
     args = parser.parse_args()
+
+    # get the data set name
+    print(args.validation_data_path)
+    dataset_name = args.validation_data_path.split('/')
+    if dataset_name[-1]=='':
+        dataset_name = dataset_name[-3]
+    else:
+        dataset_name = dataset_name[-2]
+    print(dataset_name)
+    print('Evaluation on {} data set'.format(dataset_name))
 
     # make tuples
     args.compat_vals = make_tuple(args.compat_vals)
@@ -99,9 +116,18 @@ if __name__ == '__main__':
     args.srgb_vals = make_tuple(args.srgb_vals)
 
     # tune parameters
-    return crf_parameter_tuning(args.validation_data_path, 
-                                args.model_filename, 
-                                args.compat_vals, 
-                                args.sxy_vals, 
-                                args.srgb_vals, 
-                                image_preprocessing):
+    compat_best, sxy_best, srgb_best, dice_coefficient = crf_parameter_tuning(args.validation_data_path, 
+                                                                              args.model_filename, 
+                                                                              args.compat_vals, 
+                                                                              args.sxy_vals, 
+                                                                              args.srgb_vals, 
+                                                                              args.image_preprocessing)
+    # write best configurations on disc
+    if not path.exists(args.output_path):
+        makedirs(args.output_path)
+    with open(path.join(args.output_path, dataset_name + '_crf_optimization.txt'), 'w') as file:
+        file.write('Dataset: ' + dataset_name + '\n')
+        file.write('compat: ' + str(compat_best) + '\n')
+        file.write('sxy: ' + str(sxy_best) + '\n')
+        file.write('srgb: ' + str(srgb_best) + '\n')
+        file.write('Dice coefficient: ' + str(dice_coefficient) + '\n')

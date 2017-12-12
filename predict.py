@@ -64,7 +64,7 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
 
 
 
-def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True):
+def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True, n_labels=2, sxy=(80, 80), srgb=(13, 13, 13), compat=10):
     # preprocess the image according to the model
     img = preprocess(img, fov_mask, image_preprocessing)  
     # predict the scores
@@ -73,7 +73,7 @@ def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True):
     scores = np.multiply(scores, fov_mask > 0)
     # refine using the crf is necessary
     if crf:
-        segmentation = crf_refinement(unary_potentials, img)
+        segmentation = crf_refinement(unary_potentials, img, n_labels, sxy, srgb, compat)
     segmentation = np.multiply(segmentation, fov_mask > 0)
 
     return scores, segmentation, unary_potentials
