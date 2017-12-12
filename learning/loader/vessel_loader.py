@@ -70,8 +70,8 @@ class PatchFromFundusImageLoader(data.Dataset):
         # get a random coordinate according to the sampling rule
         if self.sampling_strategy == 'uniform':
             
-            i = random.randint(self.pad, current_img.shape[0] - self.pad) 
-            j = random.randint(self.pad, current_img.shape[1] - self.pad)
+            i = random.randint(self.pad, current_img.shape[0] - self.pad - 1) 
+            j = random.randint(self.pad, current_img.shape[1] - self.pad - 1)
 
         elif self.sampling_strategy == 'guided-by-labels':
             
@@ -123,6 +123,114 @@ class PatchFromFundusImageLoader(data.Dataset):
         zoomed_lbl = zoomed_lbl[ i-self.pad:i+self.pad, j-self.pad:j+self.pad ]
 
         return zoomed_img, zoomed_lbl
+
+
+
+class PatchesFromMultipleDatasets(data.Dataset):
+    '''
+    Use this data set to load patches from data sets with different resolutions
+    '''
+
+
+    def __init__(self, data_folder, datasets_names, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False, num_patches=200000, patch_size=64):
+        
+        random.seed(7)
+
+        # validate input parameters
+        assert split in ['training', 'validation', 'test'], "Unknown split."
+        assert sampling_strategy in ['uniform', 'guided-by-labels'], "Unsuported sampling strategy."
+        assert image_preprocessing in ['rgb', 'eq', 'clahe'], "Unsuported image preprocessing."
+
+        # configuration
+        self.split = split     # type of split
+        self.is_transform = is_transform    # if data must be augmented
+        self.sampling_strategy = sampling_strategy
+        self.num_patches = num_patches
+        self.pad = patch_size // 2
+
+        # collect filenames
+        self.image_ids = []
+        self.label_ids = []
+
+        for i in range(0, len(datasets_names)):
+
+            # prepare folder names
+            img_paths = path.join(data_folder, split, 'images_' + image_preprocessing)
+            labels_paths = path.join(data_folder, split, 'labels')
+        
+            # collect image ids (names without extension) and shuffle
+            self.image_ids = self.image_ids + sorted(glob(self.img_path + '*.png'))
+            self.label_ids = self.label_ids + sorted(glob(self.labels_path + '*.png'))
+
+
+    def __len__(self):
+        return self.num_patches
+
+
+    def __getitem__(self, index):
+        
+        # pick a random image
+        index_ = random.randint(0, len(self.image_ids)-1)
+        current_img = misc.imread(self.image_ids[index_])
+        current_lbl = misc.imread(self.label_ids[index_])
+
+        # get a random coordinate according to the sampling rule
+        if self.sampling_strategy == 'uniform':
+            
+            i = random.randint(self.pad, current_img.shape[0] - self.pad - 1) 
+            j = random.randint(self.pad, current_img.shape[1] - self.pad - 1)
+
+        elif self.sampling_strategy == 'guided-by-labels':
+            
+            # pad the labels to avoid picking up an element outside the borders
+            current_lbl_ = np.ones(current_lbl.shape, dtype=int) * -1
+            current_lbl_[self.pad:current_lbl.shape[0]-self.pad, self.pad:current_lbl.shape[1]-self.pad] = current_lbl[self.pad:current_lbl.shape[0]-self.pad, self.pad:current_lbl.shape[1]-self.pad]
+
+            if random.uniform(0, 1) < 0.5:
+                # sample centered on background
+                x,y = np.where(current_lbl_==0)
+            else:
+                # sample centered on vessels
+                x,y = np.where(current_lbl_==1)
+
+            i = x[random.randint(0, len(x) - 1)]
+            j = y[random.randint(0, len(y) - 1)]
+         
+        # get the patch
+        img = current_img[i-self.pad : i+self.pad, j-self.pad : j+self.pad, :]
+        lbl = current_lbl[i-self.pad : i+self.pad, j-self.pad : j+self.pad]
+
+        # use data augmentation if required
+        if self.is_transform:
+            img, lbl = self.transform(img, lbl)
+
+        # normalize data
+        img = np.asarray(img, dtype=np.float32)
+        img = (img - np.mean(img)) / (np.std(img) + 0.000001) # normalize by its own mean and standard deviation
+
+        # set up variables for pytorch
+        img = torch.from_numpy(img).float()
+        lbl = torch.from_numpy(lbl).long()
+
+        return img, lbl
+
+
+    def transform(self, img, lbl):
+
+        # choose a zoom level
+        zoom_level = random.uniform(1, 3)
+        # resize the image
+        zoomed_img = misc.imresize(img, zoom_level)
+        zoomed_lbl = misc.imresize(lbl, zoom_level, interp='nearest') // 255
+
+        # crop the parts outside
+        i = zoomed_img.shape[0] // 2
+        j = zoomed_img.shape[1] // 2
+        zoomed_img = zoomed_img[ i-self.pad:i+self.pad, j-self.pad:j+self.pad, :]
+        zoomed_lbl = zoomed_lbl[ i-self.pad:i+self.pad, j-self.pad:j+self.pad ]
+
+        return zoomed_img, zoomed_lbl
+
 
 
 

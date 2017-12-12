@@ -69,6 +69,19 @@ def train(config_file, load_weights=False):
         v_loader = data_loader(data_path, 'validation', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], False, 10000, int(config['architecture']['patch-size']))
         val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
 
+    elif config['experiment']['data-loader'] == 'online-multiple':
+        
+        dataset_names = config['folders']['dataset-names'].replace(' ', '').split(',')
+        
+        t_loader = data_loader(data_path, dataset_names, 'training', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], parse_boolean(config['training']['augmented']))
+        train_loader = data.DataLoader(t_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+
+        v_loader = data_loader(data_path, dataset_names, 'validation', config['experiment']['sampling-strategy'], config['experiment']['image-preprocessing'], False)
+        val_loader = data.DataLoader(v_loader, batch_size=int(config['training']['batch-size']), num_workers=4, shuffle=True)
+
+        # the data path is going to be one of the databases
+        data_path = path.join(data_path, dataset_names[0])
+
     # open a validation image to show its progress during training
     val_image_name = listdir(path.join(data_path, 'validation', 'images'))[0]
     val_image_mask = listdir(path.join(data_path, 'validation', 'masks'))[0]
