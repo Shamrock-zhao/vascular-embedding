@@ -66,7 +66,7 @@ def run_experiment(experiment_folder, validation_set_path, output_path, evaluate
     if evaluate:
         with open(path.join(output_path, dataset_name, experiment_id + '.txt'), 'w') as file:
             for i in range(0, len(config_filenames)):
-                file.write(config_filenames[i] + ' - Dice: ' + str(mean_performance_per_experiment[i]))
+                file.write(config_filenames[i] + ' - Dice: ' + str(mean_performance_per_experiment[i]) + '\n')
 
 
 
