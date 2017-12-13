@@ -72,11 +72,13 @@ def crf_parameter_tuning(validation_data_path, model_filename, compat_vals, sxy_
                 print('Dice = {}'.format(str(dice_coefficients[i,j,k])))
 
     # get the best configuration
-    best_configuration = np.argmax(dice_coefficients)
+    index = np.argmax(dice_coefficients)
+    i,j,k = np.unravel_index(index, dice_coefficients.shape)
+
     dice_coefficient = np.max(dice_coefficients)
-    compat_best = best_configuration[0]
-    sxy_best = best_configuration[1]
-    srgb_best = best_configuration[2]
+    compat_best = compat[i]
+    sxy_best = sxy[j]
+    srgb_best = srgb[k]
 
     # return it
     return compat_best, sxy_best, srgb_best, dice_coefficient
