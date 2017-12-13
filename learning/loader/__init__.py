@@ -1,7 +1,7 @@
 
 import json
 
-from learning.loader.vessel_loader import VesselPatchLoader, PatchFromFundusImageLoader
+from learning.loader.vessel_loader import VesselPatchLoader, PatchFromFundusImageLoader, PatchesFromMultipleDatasets
 
 
 def get_loader(name):
@@ -12,5 +12,6 @@ def get_loader(name):
     return {
         'offline': VesselPatchLoader,
         'online': PatchFromFundusImageLoader,
+        'online-multiple': PatchesFromMultipleDatasets,
     }[name]
 
