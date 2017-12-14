@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from torch.autograd import Variable
 from learning.models.utils import *
+from skimage import filters
 
 
 class unet(nn.Module):
@@ -70,7 +71,6 @@ class unet(nn.Module):
         
         # initialize matrices for the segmentations and the padded image
         segmentation_scores = np.zeros((size_x, size_y), dtype=np.float32)
-        segmentation = np.zeros(segmentation_scores.shape, dtype=np.float32)
         unary_potentials = np.zeros((2, size_x, size_y), dtype=np.float32)
         padded_image = np.zeros((size_x, size_y, 3), dtype=np.uint8)
         # pad the image
@@ -97,20 +97,17 @@ class unet(nn.Module):
                     current_patch = Variable(current_patch, volatile=True)
                 # get the scores doing a forward pass
                 scores = self.forward(current_patch)
-                # get the segmentation, the scores and the unary potentials
-                segm_patch = np.squeeze(scores.data.max(1)[1].cpu().numpy(), axis=0)
+                # get the scores and the unary potentials
                 scores_patch = m(scores).data[0][1].cpu().numpy()
                 up_patch = m(scores).data[0].cpu().numpy()
                 # assign the inner part
-                segmentation[i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = segm_patch[sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
                 segmentation_scores[i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = scores_patch[sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
                 unary_potentials[:,i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = up_patch[:, sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
 
-                #  map and assign to the position in the array
-
         # unpad the segmentations
         segmentation_scores = segmentation_scores[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
-        segmentation = segmentation[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
+        val = filters.threshold_otsu(segmentation_scores)
+        segmentation = segmentation_scores > val
         unary_potentials = unary_potentials[:, pad:image.shape[0]+pad, pad:image.shape[1]+pad]
 
         return segmentation_scores, segmentation, unary_potentials

@@ -17,6 +17,7 @@ from configparser import ConfigParser
 from ntpath import basename
 from scipy import misc
 from glob import glob
+from skimage import filters
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -253,6 +254,8 @@ def validate(loader, validation_loader, model, config):
     mean_loss = 0.0
     n_iterations = len(loader) // int(config['training']['batch-size'])
 
+    m = nn.Softmax2d()
+
     # iterate for each batch of validation samples
     for i, (images, labels) in enumerate(validation_loader):
         
@@ -273,7 +276,11 @@ def validate(loader, validation_loader, model, config):
         loss = cross_entropy2d(scores, labels)
 
         # get predictions and ground truth
-        pred = scores.data.max(1)[1].cpu().numpy()
+        #pred = scores.data.max(1)[1].cpu().numpy()
+        scores = m(scores).data[0][1].cpu().numpy()
+        val = filters.threshold_otsu(scores)
+        pred = scores > val
+
         gt = labels.data.cpu().numpy()
 
         # sum up all the jaccard indices
