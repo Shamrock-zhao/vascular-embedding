@@ -1,6 +1,23 @@
 
 import numpy as np
 import math
+from sklearn.metrics import precision_recall_curve, average_precision_score, roc_curve, auc
+
+
+def pr_re_curve(gt, pred):
+    
+    precision, recall, _ = precision_recall_curve(gt, pred)
+    auc_prre = average_precision_score(gt, pred)
+
+    return precision, recall, auc_prre
+
+
+def roc_curve(gt, pred):
+    
+    fpr, tpr, _ = roc_curve(gt, pred)
+    auc_roc = average_precision_score(fpr, tpr)
+
+    return precision, recall, auc_roc
 
 
 def dice_index(gt, pred):
