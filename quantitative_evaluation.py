@@ -72,7 +72,7 @@ if __name__ == '__main__':
         results_writer.writerow(['Filename', 'Sensitivity', 'Specificity', 'Precision', 'Dice', 'MCC', 'G-mean'])
         
         for i in range(0, len(segm_files)):
-            results_writer.writerow([segm_files[i], se_[i], sp_[i], pr_[i], dice_[i], mcc_[i], g_mean_[i]])
+            results_writer.writerow([segm_files[i], se_[i][0], sp_[i][0], pr_[i][0], dice_[i][0], mcc_[i][0], g_mean_[i][0]])
         
         results_writer.writerow(['Average', np.mean(se_), np.mean(sp_), np.mean(pr_), np.mean(dice_), np.mean(mcc_), np.mean(g_mean_)])
         results_writer.writerow(['Std', np.std(se_), np.std(sp_), np.std(pr_), np.std(dice_), np.std(mcc_), np.std(g_mean_)])
