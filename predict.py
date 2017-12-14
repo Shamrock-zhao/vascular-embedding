@@ -8,18 +8,20 @@ import pydensecrf.densecrf as dcrf
 from pydensecrf.utils import unary_from_softmax
 from os import makedirs, listdir, path
 from scipy import misc
+from numbers import Number
 
 from data_preparation.util.image_processing import preprocess
 from data_preparation.util.files_processing import natural_key
-
+from pydensecrf.utils import unary_from_softmax, create_pairwise_bilateral
 from learning.metrics import dice_index
 
 
-def predict(image_path, fov_path, output_path, model_filename, image_preprocessing='rgb', crf=True):
+def predict(image_path, fov_path, output_path, model_filename, image_preprocessing='rgb', crf=True, type_of_pairwise='rgb'):
     '''
     '''
 
     assert image_preprocessing in ['rgb', 'eq', 'clahe'], "Unsuported image preprocessing."
+    assert type_of_pairwise in ['rgb', 'green', 'learned-feature']
 
     # retrieve images and fov masks filenames
     img_filenames = sorted(listdir(image_path), key=natural_key)
@@ -56,7 +58,8 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
             fov_mask = fov_mask[:,:,0]
         
         # segment the image
-        scores, segmentation, _ = segment_image(img, fov_mask, model, image_preprocessing, crf)
+        scores, segmentation, _ = segment_image(img=img, fov_mask=fov_mask, model=model, 
+                                                image_preprocessing=image_preprocessing, crf=crf, type_of_pairwise=type_of_pairwise)
 
         # save both files
         misc.imsave(path.join(scores_path, current_img_filename[:-3] + 'png'), scores)
@@ -64,37 +67,53 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
 
 
 
-def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True, n_labels=2, sxy=(80, 80), srgb=(13, 13, 13), compat=10):
+def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True, n_labels=2, sxy=16, srgb=1, compat=1, type_of_pairwise='rgb'):
     # preprocess the image according to the model
     img = preprocess(img, fov_mask, image_preprocessing)  
     # predict the scores
     scores, segmentation, unary_potentials = model.module.predict_from_full_image(img)
-    #scores, segmentation, unary_potentials = model.module.efficient_prediction_from_full_image(img)
     scores = np.multiply(scores, fov_mask > 0)
     # refine using the crf is necessary
     if crf:
-        segmentation = crf_refinement(unary_potentials, img, n_labels, sxy, srgb, compat)
+        segmentation = crf_refinement(unary_potentials, img, n_labels, sxy, srgb, compat, type_of_pairwise)
     segmentation = np.multiply(segmentation, fov_mask > 0)
 
     return scores, segmentation, unary_potentials
 
 
 
-def crf_refinement(unary_potentials, image, n_labels=2, sxy=(80, 80), srgb=(13, 13, 13), compat=10):
+def crf_refinement(unary_potentials, image, n_labels=2, sxy=16, schan=1, compat=1, type_of_pairwise='rgb'):
     
     # initialize the dense crf
     d = dcrf.DenseCRF2D(image.shape[1], image.shape[0], n_labels)
 
     # get negative log probabilities
     U = - (np.reshape(unary_potentials,(n_labels, image.shape[0] * image.shape[1])))
-
     # set unary potentials
     d.setUnaryEnergy(U)
-    # This adds the color-dependent term, i.e. features are (x,y,r,g,b).
-    d.addPairwiseBilateral(sxy=sxy, srgb=srgb, rgbim=image,
-                           compat=compat,
-                           kernel=dcrf.DIAG_KERNEL,
-                           normalization=dcrf.NORMALIZE_SYMMETRIC)
+
+    # prepare sigma values
+    sxy = np.ones((2, 1), dtype=np.float32) * sxy
+
+    if type_of_pairwise == 'rgb':
+
+        # This adds the color-dependent term, i.e. features are (x,y,r,g,b).
+        schan = np.ones((3, 1), dtype=np.float32) * schan
+        d.addPairwiseBilateral(sxy=sxy, srgb=schan, rgbim=image, compat=compat)      
+
+    else:
+        
+        # encode the pairwise feature
+        if type_of_pairwise == 'green':
+            # use the green band of the color image
+            img = image[:,:,1]  
+        elif type_of_pairwise == 'learned-feature':
+            # use the unary feature as a pairwise potential
+            img = np.reshape(unary_potentials[1,:,:], (image.shape[0], image.shape[1]))
+        # add the energy
+        pairwise_energy = create_pairwise_bilateral(sdims=sxy, schan=schan, img=img, chdim=-1)
+        d.addPairwiseEnergy(pairwise_energy, compat=compat) 
+
     # Run five inference steps.
     Q = d.inference(10)
     # Find out the most probable class for each pixel.
@@ -144,8 +163,9 @@ if __name__ == '__main__':
     parser.add_argument("model_full_path", help="path to the model", type=str)
     parser.add_argument("--image_preprocessing", help="image preprocessing strategy", type=str, default='rgb')
     parser.add_argument("--crf", help="boolean indicating if CRF refinement must be used", type=str, default='True')
+    parser.add_argument("--type_of_pairwise", help="type of pairwise feature", type=str, default='rgb')
 
     args = parser.parse_args()
 
     # call the main function
-    predict(args.image_path, args.fov_path, args.output_path, args.model_full_path, args.image_preprocessing, args.crf.upper()=='TRUE')
+    predict(args.image_path, args.fov_path, args.output_path, args.model_full_path, args.image_preprocessing, args.crf.upper()=='TRUE', args.type_of_pairwise)
