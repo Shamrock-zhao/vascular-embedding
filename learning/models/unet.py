@@ -65,8 +65,8 @@ class unet(nn.Module):
         pad = self.patch_size // 2
         
         # sub_pad + (image extended a little bit to fit) + sub_pad
-        size_x = math.ceil(image.shape[0] / self.patch_size) * self.patch_size + 2 * sub_pad
-        size_y = math.ceil(image.shape[1] / self.patch_size) * self.patch_size + 2 * sub_pad
+        size_x = math.ceil(image.shape[0] / self.patch_size) * self.patch_size + 2 * pad + (image.shape[0] % self.patch_size)
+        size_y = math.ceil(image.shape[1] / self.patch_size) * self.patch_size + 2 * pad + (image.shape[1] % self.patch_size)
         
         # initialize matrices for the segmentations and the padded image
         segmentation_scores = np.zeros((size_x, size_y), dtype=np.float32)
@@ -79,8 +79,8 @@ class unet(nn.Module):
         m = nn.Softmax2d()
 
         increment = self.patch_size - 2 * sub_pad
-        for i in range(pad, padded_image.shape[0]-pad, increment):
-            for j in range(pad, padded_image.shape[1]-pad, increment):
+        for i in range(pad, padded_image.shape[0] - pad, increment):
+            for j in range(pad, padded_image.shape[1] - pad, increment):
 
                 # get current patch
                 current_patch = np.asarray(padded_image[i-pad:i+pad, j-pad:j+pad, :], dtype=np.float32)
