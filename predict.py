@@ -4,6 +4,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import pydensecrf.densecrf as dcrf
+import scipy.io as sio
 
 from pydensecrf.utils import unary_from_softmax
 from os import makedirs, listdir, path
@@ -36,11 +37,14 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
 
     # initialize the output folders
     scores_path = path.join(output_path, 'scores')
+    scores_path_mat = path.join(output_path, 'scores_mat')
     segmentations_path = path.join(output_path, 'segmentations')
     if not path.exists(scores_path):
         makedirs(scores_path)
     if not path.exists(segmentations_path):
         makedirs(segmentations_path)
+    if not path.exists(scores_path_mat):
+        makedirs(scores_path_mat)
 
     # iterate for each img filename
     for i in range(0, len(img_filenames)):
@@ -61,10 +65,10 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
         scores, segmentation, _ = segment_image(img=img, fov_mask=fov_mask, model=model, 
                                                 image_preprocessing=image_preprocessing, crf=crf, type_of_pairwise=type_of_pairwise)
 
-        # save both files
+        # save all files
         misc.imsave(path.join(scores_path, current_img_filename[:-3] + 'png'), scores)
         misc.imsave(path.join(segmentations_path, current_img_filename[:-3] + 'png'), segmentation)
-
+        sio.savemat(path.join(scores_path_mat, current_img_filename[:-3] + 'mat'), {current_img_filename[:-4]: scores})
 
 
 def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True, n_labels=2, sxy=16, srgb=1, compat=1, type_of_pairwise='rgb'):
