@@ -68,7 +68,7 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
         # save all files
         misc.imsave(path.join(scores_path, current_img_filename[:-3] + 'png'), scores)
         misc.imsave(path.join(segmentations_path, current_img_filename[:-3] + 'png'), segmentation)
-        sio.savemat(path.join(scores_path_mat, current_img_filename[:-3] + 'mat'), {current_img_filename[:-4]: scores})
+        sio.savemat(path.join(scores_path_mat, current_img_filename[:-3] + 'mat'), {'scores': scores})
 
 
 def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True, n_labels=2, sxy=16, srgb=1, compat=1, type_of_pairwise='rgb'):
