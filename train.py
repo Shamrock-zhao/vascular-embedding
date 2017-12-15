@@ -125,7 +125,7 @@ def train(config_file, load_weights=False):
             warnings.warn('Unable to find pretrained models in {}. Starting from 0.'.format(dir_checkpoints))
             first_epoch = 0
     else:
-        first_epoch = 0
+        first_epoch = 05
 
     # initialize the optimizer
     if config['training']['optimizer']=='SGD':
@@ -308,7 +308,7 @@ def parse_boolean(input_string):
 
 def converge(previous_epoch_loss, current_epoch_loss, epsilon, loop_index):
     
-    if loop_index < 15:
+    if loop_index < 10:
         return False
     else:
         print('Previous Dice: {}'.format(previous_epoch_loss))
