@@ -125,7 +125,7 @@ def train(config_file, load_weights=False):
             warnings.warn('Unable to find pretrained models in {}. Starting from 0.'.format(dir_checkpoints))
             first_epoch = 0
     else:
-        first_epoch = 05
+        first_epoch = 0
 
     # initialize the optimizer
     if config['training']['optimizer']=='SGD':
