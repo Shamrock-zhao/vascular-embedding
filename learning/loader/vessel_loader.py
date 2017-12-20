@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
+from glob import glob
 from PIL import Image
 from os import listdir, path
 from torch.utils import data
@@ -155,12 +156,16 @@ class PatchesFromMultipleDatasets(data.Dataset):
         for i in range(0, len(datasets_names)):
 
             # prepare folder names
-            img_paths = path.join(data_folder, split, 'images_' + image_preprocessing)
-            labels_paths = path.join(data_folder, split, 'labels')
-        
-            # collect image ids (names without extension) and shuffle
-            self.image_ids = self.image_ids + sorted(glob(self.img_path + '*.png'))
-            self.label_ids = self.label_ids + sorted(glob(self.labels_path + '*.png'))
+            img_paths = path.join(data_folder, datasets_names[i], split, 'images_' + image_preprocessing)
+            labels_paths = path.join(data_folder, datasets_names[i], split, 'labels')
+            # collect image ids (names without extension)
+            current_images_ids = sorted(glob(path.join(img_paths, '*.png')))
+            current_labels_ids = sorted(glob(path.join(labels_paths, '*.png')))
+            if len(current_labels_ids) == 0:
+                current_labels_ids = sorted(glob(path.join(labels_paths, '*.gif')))
+            # concatenate
+            self.image_ids = self.image_ids + current_images_ids
+            self.label_ids = self.label_ids + current_labels_ids
 
 
     def __len__(self):
@@ -172,8 +177,7 @@ class PatchesFromMultipleDatasets(data.Dataset):
         # pick a random image
         index_ = random.randint(0, len(self.image_ids)-1)
         current_img = misc.imread(self.image_ids[index_])
-        current_lbl = misc.imread(self.label_ids[index_])
-
+        current_lbl = misc.imread(self.label_ids[index_]) > 0
         # get a random coordinate according to the sampling rule
         if self.sampling_strategy == 'uniform':
             
