@@ -19,7 +19,7 @@ class PatchFromFundusImageLoader(data.Dataset):
     '''
 
 
-    def __init__(self, data_folder, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False, num_patches=200000, patch_size=64):
+    def __init__(self, data_folder, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False, num_patches=200000, patch_size=64, max_zoom=4):
         
         random.seed(7)
 
@@ -31,6 +31,7 @@ class PatchFromFundusImageLoader(data.Dataset):
         # configuration
         self.split = split     # type of split
         self.is_transform = is_transform    # if data must be augmented
+        self.max_zoom = max_zoom
         self.sampling_strategy = sampling_strategy
         self.num_patches = num_patches
         self.pad = patch_size // 2
@@ -112,7 +113,7 @@ class PatchFromFundusImageLoader(data.Dataset):
     def transform(self, img, lbl):
 
         # choose a zoom level
-        zoom_level = random.uniform(1, 3)
+        zoom_level = random.uniform(1, self.max_zoom)
         # resize the image
         zoomed_img = misc.imresize(img, zoom_level)
         zoomed_lbl = misc.imresize(lbl, zoom_level, interp='nearest') // 255
@@ -133,7 +134,7 @@ class PatchesFromMultipleDatasets(data.Dataset):
     '''
 
 
-    def __init__(self, data_folder, datasets_names, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False, num_patches=200000, patch_size=64):
+    def __init__(self, data_folder, datasets_names, split, sampling_strategy='guided-by-labels', image_preprocessing='rgb', is_transform=False, num_patches=200000, patch_size=64, max_zoom=4):
         
         random.seed(7)
 
@@ -148,6 +149,7 @@ class PatchesFromMultipleDatasets(data.Dataset):
         self.sampling_strategy = sampling_strategy
         self.num_patches = num_patches
         self.pad = patch_size // 2
+        self.max_zoom = max_zoom
 
         # collect filenames
         self.image_ids = []
@@ -177,7 +179,7 @@ class PatchesFromMultipleDatasets(data.Dataset):
         # pick a random image
         index_ = random.randint(0, len(self.image_ids)-1)
         current_img = misc.imread(self.image_ids[index_])
-        current_lbl = misc.imread(self.label_ids[index_]) > 0
+        current_lbl = np.asarray(misc.imread(self.label_ids[index_]), dtype=np.int32) // 255
         # get a random coordinate according to the sampling rule
         if self.sampling_strategy == 'uniform':
             
@@ -206,7 +208,7 @@ class PatchesFromMultipleDatasets(data.Dataset):
 
         # use data augmentation if required
         if self.is_transform:
-            img, lbl = self.transform(img, lbl)
+            img, lbl = self.transform(img, lbl, self.max_zoom)
 
         # normalize data
         img = np.asarray(img, dtype=np.float32)
@@ -219,10 +221,10 @@ class PatchesFromMultipleDatasets(data.Dataset):
         return img, lbl
 
 
-    def transform(self, img, lbl):
+    def transform(self, img, lbl, max_zoom):
 
         # choose a zoom level
-        zoom_level = random.uniform(1, 3)
+        zoom_level = random.uniform(1, max_zoom)
         # resize the image
         zoomed_img = misc.imresize(img, zoom_level)
         zoomed_lbl = misc.imresize(lbl, zoom_level, interp='nearest') // 255
