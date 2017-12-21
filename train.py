@@ -244,7 +244,7 @@ def validate(loader, validation_loader, model, config):
     mean_val_dice = 0.0
     mean_val_jaccard = 0.0
     mean_loss = 0.0
-    n_iterations = len(loader) // int(config['training']['batch-size'])
+    n_iterations = len(loader) // 256
 
     m = nn.Softmax2d()
 
