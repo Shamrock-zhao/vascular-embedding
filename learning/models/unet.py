@@ -107,7 +107,7 @@ class unet(nn.Module):
         # unpad the segmentations
         segmentation_scores = segmentation_scores[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
         val = filters.threshold_otsu(segmentation_scores)
-        segmentation = segmentation_scores > val
+        segmentation = np.asarray(segmentation_scores > val, dtype=np.float32)
         unary_potentials = unary_potentials[:, pad:image.shape[0]+pad, pad:image.shape[1]+pad]
 
         return segmentation_scores, segmentation, unary_potentials
