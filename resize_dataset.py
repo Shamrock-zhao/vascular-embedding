@@ -14,6 +14,8 @@ def resize_dataset(input_dataset_folder, output_dataset_folder, size_x=1444):
     input_image_folder = path.join(input_dataset_folder, 'images')
     input_masks_folder = path.join(input_dataset_folder, 'masks')
     input_label_folder = path.join(input_dataset_folder, 'labels')
+    if not path.exists(input_label_folder):
+        input_label_folder = None
 
     # prepare output paths
     output_image_folder = path.join(output_dataset_folder, 'images')
@@ -23,15 +25,14 @@ def resize_dataset(input_dataset_folder, output_dataset_folder, size_x=1444):
     if not path.exists(output_masks_folder):
         makedirs(output_masks_folder)
     output_label_folder = path.join(output_dataset_folder, 'labels')
-    if not path.exists(output_label_folder):
+    if not path.exists(output_label_folder) and not (input_label_folder is None):
         makedirs(output_label_folder)
 
     # get image ids
-    image_filenames = listdir(input_image_folder)
-    masks_filenames = listdir(input_masks_folder)
-    labels_filenames = listdir(input_label_folder)
-
-    print(image_filenames)
+    image_filenames = sorted(listdir(input_image_folder))
+    masks_filenames = sorted(listdir(input_masks_folder))
+    if not input_label_folder is None:
+        labels_filenames = listdir(input_label_folder)
 
     # iterate for each image
     for i in range(0, len(image_filenames)):
@@ -43,22 +44,34 @@ def resize_dataset(input_dataset_folder, output_dataset_folder, size_x=1444):
         I = misc.imread(path.join(input_image_folder, image_filenames[i]))
         # open the mask
         fov_mask = misc.imread(path.join(input_masks_folder, masks_filenames[i]))
+        if len(fov_mask.shape)==3:
+            fov_mask = fov_mask[:,:,0] > 0
         # open the mask
-        labels = misc.imread(path.join(input_label_folder, labels_filenames[i]))
+        if not input_label_folder is None:
+            labels = misc.imread(path.join(input_label_folder, labels_filenames[i]))
 
         # resizing factor
-        print(I.shape[0])
         resizing_factor = size_x / I.shape[0]
 
         # resize the image
         I = misc.imresize(I, resizing_factor, 'bilinear')
-        fov_mask = misc.imresize(fov_mask, resizing_factor) > 128#, 'nearest')
-        labels = misc.imresize(labels, resizing_factor) > 128#, 'nearest')
+
+        if resizing_factor > 1:
+            fov_mask = misc.imresize(fov_mask, resizing_factor), 'nearest')
+            if not input_label_folder is None:
+                labels = misc.imresize(labels, resizing_factor) > 128#, 'nearest')
+        else:
+            fov_mask = misc.imresize(fov_mask, resizing_factor), 'nearest')
+            if not input_label_folder is None:
+                labels = misc.imresize(labels, resizing_factor, 'nearest')
+        print(I.shape)
+        print(fov_mask.shape)
 
         # write the FOV mask in disk
         misc.imsave(path.join(output_image_folder, image_filenames[i]), I)
         misc.imsave(path.join(output_masks_folder, masks_filenames[i]), fov_mask)
-        misc.imsave(path.join(output_label_folder, labels_filenames[i]), labels)
+        if not input_label_folder is None:
+            misc.imsave(path.join(output_label_folder, labels_filenames[i]), labels)
 
 
 
@@ -74,5 +87,6 @@ if __name__ == '__main__':
     parser.add_argument("--size_x", help="target size in the x axis", type=int, default=1444)
 
     args = parser.parse_args()
+    print(args.size_x)
 
     resize_dataset(args.input_dataset_folder, args.output_dataset_folder, args.size_x)
