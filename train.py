@@ -270,7 +270,8 @@ def validate(loader, validation_loader, model, config):
         # get predictions and ground truth
         #pred = scores.data.max(1)[1].cpu().numpy()
         scores = m(scores).data[0][1].cpu().numpy()
-        val = filters.threshold_otsu(scores)
+        #val = filters.threshold_otsu(scores)
+        val = 0.5
         pred = scores > val
 
         gt = labels.data.cpu().numpy()
