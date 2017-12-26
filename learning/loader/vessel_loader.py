@@ -51,11 +51,18 @@ class PatchFromFundusImageLoader(data.Dataset):
         self.images = np.empty((image.shape[0], image.shape[1], image.shape[2], len(self.image_ids)), dtype=np.uint8)
         self.labels = np.empty((label.shape[0], label.shape[1], len(self.label_ids)), dtype=np.int32)
         self.images[:,:,:,0] = image
-        self.labels[:,:,0] = label
+        if len(label.shape)==3:
+            self.labels[:,:,0] = label[:,:,0]
+        else:
+            self.labels[:,:,0] = label
         # open them so that we can randomly get a sample from them
         for i in range(1, len(self.image_ids)):
             self.images[:,:,:,i] = np.asarray(misc.imread(path.join(self.img_path, self.image_ids[i])), dtype=np.uint8)
-            self.labels[:,:,i] = np.asarray(misc.imread(path.join(self.labels_path, self.label_ids[i])), dtype=np.int32) // 255
+            label = np.asarray(misc.imread(path.join(self.labels_path, self.label_ids[i])), dtype=np.int32) // 255
+            if len(label.shape)==3:
+                self.labels[:,:,i] = label[:,:,0]
+            else:
+                self.labels[:,:,i] = label
 
 
     def __len__(self):
