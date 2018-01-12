@@ -179,6 +179,7 @@ def train(config_file, load_weights=False):
             outputs = model(images)
             # computation of the cross entropy loss
             loss = cross_entropy2d(outputs, labels)
+
             # backward pass
             loss.backward()
             # gradient update

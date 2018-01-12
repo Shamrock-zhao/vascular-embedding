@@ -77,7 +77,7 @@ class vascularEmbedding(nn.Module):
         # this restores the 2048 features
         self.decoder1 = nn.Sequential(nn.Linear(128, 2048), nn.ReLU())
         # this restores the original output of conv3
-        self.decoderOutput = nn.Sequential(nn.Linear(2048, 16.16.128), nn.ReLU())
+        self.decoderOutput = nn.Sequential(nn.Linear(2048, 16*16*128), nn.ReLU())
 
     def forward(self, conv3_output):
         
@@ -90,7 +90,7 @@ class vascularEmbedding(nn.Module):
         decoded = self.decoder1(encoded)
         decoded = self.decoderOutput(decoded)
         # reshape
-        return decoded.view(-1, 128, 16, 16)
+        return decoded.view((-1, 128, 16, 16))
 
 
 
