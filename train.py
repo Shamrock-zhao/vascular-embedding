@@ -176,7 +176,7 @@ def train(config_file, load_weights=False):
             # clear the gradients
             optimizer.zero_grad()
             # forward pass of the batch through the model
-            outputs = model(images)
+            outputs, _ = model(images)
             # computation of the cross entropy loss
             loss = cross_entropy2d(outputs, labels)
 
