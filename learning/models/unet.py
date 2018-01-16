@@ -159,7 +159,7 @@ def generate_vascular_embedding(vascular_encoding_vector, strategy='giancardo'):
             output_embedding[embedding_i] = stats.iqr(vascular_encoding_matrix[i,:])
             embedding_i = embedding_i + 1
             # get the median value
-            output_embedding[embedding_i] = stats.median(vascular_encoding_matrix[i,:])
+            output_embedding[embedding_i] = np.median(vascular_encoding_matrix[i,:])
             embedding_i = embedding_i + 1
         # return the embedding
         return output_embedding
