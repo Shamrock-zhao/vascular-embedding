@@ -146,7 +146,7 @@ def generate_vascular_embedding(vascular_encoding_vector, strategy='giancardo'):
     # size of the patch encoding            
     encoding_dimension = 128
     # reshape the encoding vector and turn it into a matrix
-    vascular_encoding_matrix = np.reshape((128, vascular_encoding_vector.shape[0] // 128))
+    vascular_encoding_matrix = np.reshape(vascular_encoding_vector, (128, vascular_encoding_vector.shape[0] // 128))
 
     # See Giancardo 2017, Representation Learning for Retinal Vasculature Embedding
     if strategy=='giancardo':
