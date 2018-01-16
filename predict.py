@@ -39,12 +39,15 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
     scores_path = path.join(output_path, 'scores')
     scores_path_mat = path.join(output_path, 'scores_mat')
     segmentations_path = path.join(output_path, 'segmentations')
+    embeddings_path_mat = path.join(output_path, 'embedding_mat')
     if not path.exists(scores_path):
         makedirs(scores_path)
     if not path.exists(segmentations_path):
         makedirs(segmentations_path)
     if not path.exists(scores_path_mat):
         makedirs(scores_path_mat)
+    if not path.exists(embeddings_path_mat):
+        makedirs(embeddings_path_mat)
 
     # iterate for each img filename
     for i in range(0, len(img_filenames)):
@@ -62,27 +65,28 @@ def predict(image_path, fov_path, output_path, model_filename, image_preprocessi
             fov_mask = fov_mask[:,:,0]
         
         # segment the image
-        scores, segmentation, _ = segment_image(img=img, fov_mask=fov_mask, model=model, 
+        scores, segmentation, _, vascular_embedding = segment_image(img=img, fov_mask=fov_mask, model=model, 
                                                 image_preprocessing=image_preprocessing, crf=crf, type_of_pairwise=type_of_pairwise)
 
         # save all files
         misc.imsave(path.join(scores_path, current_img_filename[:-3] + 'png'), scores)
         misc.imsave(path.join(segmentations_path, current_img_filename[:-3] + 'png'), segmentation)
         sio.savemat(path.join(scores_path_mat, current_img_filename[:-3] + 'mat'), {'scores': scores})
+        sio.savemat(path.join(embeddings_path_mat, current_img_filename[:-3] + 'mat'), {'vascular_embedding': vascular_embedding})
 
 
 def segment_image(img, fov_mask, model, image_preprocessing='rgb', crf=True, n_labels=2, sxy=16, srgb=1, compat=1, type_of_pairwise='rgb'):
     # preprocess the image according to the model
     img = preprocess(img, fov_mask, image_preprocessing)  
     # predict the scores
-    scores, segmentation, unary_potentials = model.module.predict_from_full_image(img)
+    scores, segmentation, unary_potentials, vascular_embedding = model.module.predict_from_full_image(img)
     scores = np.multiply(scores, fov_mask > 0)
     # refine using the crf is necessary
     if crf:
         segmentation = crf_refinement(unary_potentials, img, n_labels, sxy, srgb, compat, type_of_pairwise)
     segmentation = np.multiply(segmentation, fov_mask > 0)
 
-    return scores, segmentation, unary_potentials
+    return scores, segmentation, unary_potentials, vascular_embedding
 
 
 

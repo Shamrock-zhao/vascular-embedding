@@ -90,7 +90,7 @@ class vascularEmbedding(nn.Module):
         decoded = self.decoder1(encoded)
         decoded = self.decoderOutput(decoded)
         # reshape
-        return decoded.view((-1, 128, 16, 16))
+        return decoded.view((-1, 128, 16, 16)), encoded
 
 
 

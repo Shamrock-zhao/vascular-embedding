@@ -10,6 +10,8 @@ from torch.autograd import Variable
 from learning.models.utils import *
 from skimage import filters
 
+from scipy import stats
+
 
 class unet(nn.Module):
 
@@ -55,7 +57,7 @@ class unet(nn.Module):
         conv3 = self.conv3(maxpool2)
 
         # vascular embedding part -------------------
-        conv3 = self.vascularEmbedding(conv3)
+        conv3, vascular_encoding = self.vascularEmbedding(conv3)
         # vascular embedding part -------------------
 
         up2 = self.up_concat2(conv2, conv3)
@@ -63,7 +65,11 @@ class unet(nn.Module):
 
         final = self.final(up1)
 
-        return final
+        return final, vascular_encoding
+
+
+
+
 
 
     def predict_from_full_image(self, image):
@@ -85,7 +91,12 @@ class unet(nn.Module):
 
         m = nn.Softmax2d()
 
-        increment = self.patch_size - 2 * sub_pad
+        # initialize the vascular encoding matrix
+        vascular_encoding_vector = []
+
+        #increment = self.patch_size - 2 * sub_pad   # we won't use this increment as we need an embedding for each non-overlapped patch
+        increment = self.patch_size
+        
         for i in range(pad, padded_image.shape[0] - pad, increment):
             for j in range(pad, padded_image.shape[1] - pad, increment):
 
@@ -98,18 +109,27 @@ class unet(nn.Module):
                 current_patch = torch.unsqueeze(current_patch, 0)
                 current_patch = current_patch.permute(0, 3, 1, 2)
                 # use CUDA if possible
-                if torch.cuda.is_available():
-                    current_patch = Variable(current_patch, volatile=True).cuda()
-                else:
-                    current_patch = Variable(current_patch, volatile=True)
-                # get the scores doing a forward pass
-                scores = self.forward(current_patch)
-                # get the scores and the unary potentials
-                scores_patch = m(scores).data[0][1].cpu().numpy()
-                up_patch = m(scores).data[0].cpu().numpy()
-                # assign the inner part
-                segmentation_scores[i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = scores_patch[sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
-                unary_potentials[:,i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = up_patch[:, sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
+                with torch.no_grad():
+                    if torch.cuda.is_available():
+                        current_patch = Variable(current_patch).cuda()
+                    else:
+                        current_patch = Variable(current_patch)
+                    # get the scores and the vascular encoding by doing a forward pass
+                    scores, vascular_encoding = self.forward(current_patch)
+                    # concatenate the vascular encoding
+                    vascular_encoding_vector.append(vascular_encoding)
+                    # get the scores and the unary potentials
+                    scores_patch = m(scores).data[0][1].cpu().numpy()
+                    up_patch = m(scores).data[0].cpu().numpy()
+                    # assign the inner part
+                    segmentation_scores[i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = scores_patch[sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
+                    unary_potentials[:,i-sub_pad:i+sub_pad, j-sub_pad:j+sub_pad] = up_patch[:, sub_pad:self.patch_size-sub_pad, sub_pad:self.patch_size-sub_pad]
+
+        # turn the vascular encoding matrix to a numpy array
+        vascular_encoding_vector = np.array(vascular_encoding_vector)
+        
+        # generate the vessel embedding
+        vascular_embedding = generate_vascular_embedding(vascular_encoding_vector)
 
         # unpad the segmentations
         segmentation_scores = segmentation_scores[pad:image.shape[0]+pad, pad:image.shape[1]+pad]
@@ -117,4 +137,32 @@ class unet(nn.Module):
         segmentation = np.asarray(segmentation_scores > val, dtype=np.float32)
         unary_potentials = unary_potentials[:, pad:image.shape[0]+pad, pad:image.shape[1]+pad]
 
-        return segmentation_scores, segmentation, unary_potentials
+        return segmentation_scores, segmentation, unary_potentials, vascular_embedding
+
+
+
+def generate_vascular_embedding(vascular_encoding_vector, strategy='giancardo'):
+
+    # size of the patch encoding            
+    encoding_dimension = 128
+    # reshape the encoding vector and turn it into a matrix
+    vascular_encoding_matrix = np.reshape((128, vascular_encoding_vector.shape[0] // 128))
+
+    # See Giancardo 2017, Representation Learning for Retinal Vasculature Embedding
+    if strategy=='giancardo':
+        
+        # initialize the output embedding
+        output_embedding = np.zeros((256, 1))
+        embedding_i = 0
+        for i in range(0, 128):
+            # get the interquartile range
+            output_embedding[embedding_i] = stats.iqr(vascular_encoding_matrix[i,:])
+            embedding_i = embedding_i + 1
+            # get the median value
+            output_embedding[embedding_i] = stats.median(vascular_encoding_matrix[i,:])
+            embedding_i = embedding_i + 1
+        # return the embedding
+        return output_embedding
+
+    else:
+        raise ValueError('Unknown embedding strategy.')
