@@ -109,7 +109,7 @@ def train(config_file, load_weights=False):
             # retrieve first epoch from the name
             first_epoch = int(((checkpoint_name.split('_'))[-1].split('.'))[0]) + 1
             # evaluate the validation image on the current model
-            validation_image_scores, _, unary_potentials = model.module.predict_from_full_image(validation_image)
+            validation_image_scores, _, unary_potentials, _ = model.module.predict_from_full_image(validation_image)
             validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
             plotter.display_scores(validation_image_scores, first_epoch)
             plotter.display_segmentation(validation_image_segmentation, first_epoch)

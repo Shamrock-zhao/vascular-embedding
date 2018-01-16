@@ -65,7 +65,7 @@ class unet(nn.Module):
 
         final = self.final(up1)
 
-        return final, vascular_encoding
+        return final, vascular_encoding.data.numpy()
 
 
 
