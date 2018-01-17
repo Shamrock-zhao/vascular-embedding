@@ -95,7 +95,7 @@ class unet(nn.Module):
         vascular_encoding_vector = []
 
         #increment = self.patch_size - 2 * sub_pad   # we won't use this increment as we need an embedding for each non-overlapped patch
-        increment = self.patch_size
+        increment = self.patch_size // 2
         
         for i in range(pad, padded_image.shape[0] - pad, increment):
             for j in range(pad, padded_image.shape[1] - pad, increment):
