@@ -26,7 +26,7 @@ class PatchFromFundusImageLoader(data.Dataset):
         # validate input parameters
         assert split in ['training', 'validation', 'test'], "Unknown split."
         assert sampling_strategy in ['uniform', 'guided-by-labels'], "Unsuported sampling strategy."
-        assert image_preprocessing in ['rgb', 'eq', 'clahe'], "Unsuported image preprocessing."
+        assert image_preprocessing in ['rgb', 'eq', 'clahe', 'green'], "Unsuported image preprocessing."
 
         # configuration
         self.split = split     # type of split

@@ -14,7 +14,7 @@ def export_preprocessed_images(root_path='../data', datasets=['DRIVE', 'STARE', 
   # prepare subsets
   subsets = ['training', 'validation', 'test']
   # prepare suported preprocessing strategies
-  preprocessing_strategies = ['rgb', 'clahe', 'eq']
+  preprocessing_strategies = ['rgb', 'clahe', 'eq', 'green']
 
   # iterate for each data set
   for i in range(0, len(datasets)):

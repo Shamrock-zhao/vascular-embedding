@@ -12,7 +12,7 @@ import ntpath
 
 import matplotlib.pyplot as plt
 
-from os import path, makedirs, listdir
+from os import path, makedirs, listdir, remove
 from configparser import ConfigParser
 from ntpath import basename
 from scipy import misc
@@ -206,7 +206,7 @@ def train(config_file, load_weights=False):
 
         # evaluate the validation image on the current model
         print('Testing on an image...')
-        validation_image_scores, validation_image_segmentation, unary_potentials = model.module.predict_from_full_image(validation_image)
+        validation_image_scores, validation_image_segmentation, unary_potentials, _ = model.module.predict_from_full_image(validation_image)
         #validation_image_segmentation = crf_refinement(unary_potentials, validation_image, int(config['architecture']['num-classes']))
         print('Test finished')
 
@@ -226,6 +226,9 @@ def train(config_file, load_weights=False):
 
         # save current checkpoint
         torch.save(model.state_dict(), path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch)))
+        previous_checkpoint_filename = path.join(dir_checkpoints, "{}_{}.pkl".format(experiment_name, epoch - 1))
+        if (epoch > 0) and (path.exists(previous_checkpoint_filename)):
+            remove(previous_checkpoint_filename)
 
         # update the epoch
         epoch = epoch + 1
@@ -264,7 +267,7 @@ def validate(loader, validation_loader, model, config):
             labels = Variable(labels)
 
         # forward pass of the batch of images
-        scores = model(images)
+        scores, _ = model(images)
         # evaluate the cross entropy loss
         loss = cross_entropy2d(scores, labels)
 
